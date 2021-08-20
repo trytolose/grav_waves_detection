@@ -1,0 +1,27 @@
+hydra:
+  run:
+    dir: "."
+  output_subdir: null
+
+EXP_NAME: "test"
+FOLD: 0
+STEPS_PER_EPOCH: 2000
+BS: 64
+
+EPOCH: 40
+
+TRANSFORM: "src.transforms.stack_turkey"
+
+qtransform_params:
+  sr: 2048
+  fmin: 30 
+  fmax: 400
+  hop_length: 64
+  bins_per_octave: 12
+  filter_scale: 0.5
+
+bandpass_param:
+  lf: 30
+  hf: 400
+  order: 8 
+  sr: 2048

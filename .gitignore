@@ -2,3 +2,7 @@ input
 *.pt
 submission.csv
 .ipynb_checkpoints
+outputs
+.vscode
+main.log
+src/__pycache__
