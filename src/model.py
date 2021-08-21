@@ -11,6 +11,9 @@ class CustomModel_v0(nn.Module):
         self.cqt = CQT1992v2(**cfg.qtransform_params) 
         
     def forward(self, x):
+        x = x.unsqueeze(1)
+        bs = x.shape[0]
+        x = x.view(bs, -1)
         x = self.cqt(x).unsqueeze(1)
         x = nn.functional.interpolate(x, (256, 386))
         output = self.model(x)

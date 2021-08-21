@@ -11,19 +11,19 @@ class TrainDataset(Dataset):
         self.mode = mode
 
     def __len__(self):
-        if self.mode == "train":
-            return self.steps_per_epoch
-        else:
-            return len(self.df)
+        # if self.mode == "train":
+        #     return self.steps_per_epoch
+        # else:
+        return len(self.df)
 
     def __getitem__(self, idx):
-        if self.mode == "train":
-            rand_id = np.random.randint(len(self.df), size=1)[0]
-            file_path = self.file_names[rand_id]
-            label = float(self.labels[rand_id])
-        else:
-            file_path = self.file_names[idx]
-            label = float(self.labels[idx])
+        # if self.mode == "train":
+            # rand_id = np.random.randint(len(self.df), size=1)[0]
+            # file_path = self.file_names[rand_id]
+            # label = float(self.labels[rand_id])
+        # else:
+        file_path = self.file_names[idx]
+        label = float(self.labels[idx])
         waves = np.load(file_path)
         if self.transform is not None:
             waves = self.transform(waves)

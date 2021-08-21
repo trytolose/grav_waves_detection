@@ -8,7 +8,7 @@ FOLD: 0
 STEPS_PER_EPOCH: 2000
 BS: 64
 
-EPOCH: 40
+EPOCH: 20
 
 TRANSFORM: "src.transforms.stack_turkey"
 

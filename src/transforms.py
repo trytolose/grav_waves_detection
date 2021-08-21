@@ -7,30 +7,34 @@ def apply_bandpass(x, lf=30, hf=400, order=8, sr=2048):
     return signal.sosfiltfilt(sos, x) / normalization
 
 def apply_win(x):
-    xr = x*signal.tukey(len(x), 0.1)
+    xr = x*signal.tukey(4096, 0.1)
     return xr
+
+def dumb_transform(waves, params):
+    # waves = np.hstack(waves)
+    waves = waves / np.max(waves)
+    return waves    
 
 
 def stack_turkey(waves, params):
-    waves = np.hstack(waves)
     waves = waves / np.max(waves)
     waves = apply_win(waves)
+    # waves = np.hstack(waves)
     return waves    
 
 
 def stack_bandpass_transform(waves, params):
-    waves = np.hstack(waves)
     waves = waves / np.max(waves)
     waves = apply_bandpass(waves, **params)
+    # waves = np.hstack(waves)
     return waves
 
 
 def stack_bandpass_turkey_transform(waves, params):
-    
-    waves = np.hstack(waves)
     waves = waves / np.max(waves)
     waves = apply_win(waves)
     waves = apply_bandpass(waves, **params)
+    # waves = np.hstack(waves)
     return waves
 
 
