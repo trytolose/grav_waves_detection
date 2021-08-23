@@ -23,9 +23,12 @@ class TrainDataset(Dataset):
             # label = float(self.labels[rand_id])
         # else:
         file_path = self.file_names[idx]
-        label = float(self.labels[idx])
+        
         waves = np.load(file_path)
         if self.transform is not None:
             waves = self.transform(waves)
-
-        return waves, label
+        if self.mode=='train':
+            label = float(self.labels[idx])
+            return waves, label
+        if self.mode=='test':
+            return waves

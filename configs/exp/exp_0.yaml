@@ -1,1 +1,13 @@
-EXP_NAME: "testtest"
+EXP_NAME: "CWT"
+FOLD: 0
+BS: 64
+EPOCH: 6
+MODEL:
+  NAME: "CustomModel_CWT"
+  IMG_SIZE: [256, 512]
+
+cwt_params:
+  widths: [10, 90, 0.5]
+  wavelet: 'cmorlet'
+  channels: 3
+  filter_len: 4096

@@ -16,7 +16,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from src.dataset import TrainDataset
-from src.model import CustomModel_v0, CustomModel_v1
+from src.model import get_model  # CustomModel_v0, CustomModel_v1, CustomModel_CWT
 
 INPUT_PATH = Path("/home/trytolose/rinat/kaggle/grav_waves_detection/input")
 
@@ -54,11 +54,11 @@ def get_loaders(cfg):
 
 def train(cfg):
     train_loader, val_loader = get_loaders(cfg)
-    model = CustomModel_v1(cfg)
+    model = get_model(cfg)
     model.cuda()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
     loss_fn = nn.BCEWithLogitsLoss()
-    scheduler = ReduceLROnPlateau(optimizer, mode="max", verbose=True, patience=2, factor=0.4, eps=1e-12)
+    scheduler = ReduceLROnPlateau(optimizer, mode="max", verbose=True, patience=1, factor=0.4, eps=1e-12)
 
     best_score = 0
     for e in range(cfg.EPOCH):
