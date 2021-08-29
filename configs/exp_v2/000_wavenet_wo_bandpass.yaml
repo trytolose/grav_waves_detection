@@ -1,0 +1,14 @@
+EXP_NAME: "000_wavenet_wo_bandpass"
+FOLD: 0
+BS: 128
+EPOCH:  10
+MODEL:
+  NAME: "Wavenet"
+TRANSFORM: 
+  NAME: "src.transforms.minmax_transform"
+
+SCHEDULER:
+  NAME: "torch.optim.lr_scheduler.CosineAnnealingWarmRestarts"
+  CFG:
+    T_0: 5
+    T_mult: 1

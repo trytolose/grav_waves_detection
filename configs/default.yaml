@@ -3,35 +3,62 @@ hydra:
     dir: "."
   output_subdir: null
 
+DEBUG: False
 EXP_NAME: "test"
 FOLD: 0
 STEPS_PER_EPOCH: 2000
 BS: 128
+NUM_WORKERS: 12
+FP16: False
+
+TRANSFORM: 
+  NAME: "src.transforms.stack_turkey"
+  CFG: {}
 
 EPOCH: 10
 
-TRANSFORM: "src.transforms.stack_turkey"
+LOSS:
+  NAME: "torch.nn.BCEWithLogitsLoss"
+  CFG: {}
 
 MODEL:
   NAME: "src.model.CustomModel_v1"
-  IMG_SIZE: [256, 256]
+  CFG: {}
+  # ENCODER: "efficientnet_b0"
+  # IMG_SIZE: [256, 256]
 
-qtransform_params:
-  sr: 2048
-  fmin: 30 
-  fmax: 400
-  hop_length: 64
-  bins_per_octave: 12
-  filter_scale: 0.5
+OPTIMIZER:
+  NAME: "torch.optim.Adam"
+  CFG:
+    lr: 0.001
 
-bandpass_param:
-  lf: 30
-  hf: 400
-  order: 8 
-  sr: 2048
+SCHEDULER:
+  NAME: "torch.optim.lr_scheduler.CosineAnnealingWarmRestarts"
+  CFG: {}
 
-cwt_params:
-  widths: [10, 90, 0.5]
-  wavelet: 'cmorlet'
-  channels: 3
-  filter_len: 4096
+N_SAVED: 5
+
+# qtransform_params:
+#   sr: 2048
+#   fmin: 20 
+#   fmax: 1024
+#   hop_length: 32
+#   bins_per_octave: 8
+#   # sr: 2048
+#   # fmin: 30 
+#   # fmax: 400
+#   # hop_length: 64
+#   # bins_per_octave: 12
+#   # filter_scale: 0.5
+
+# bandpass_param:
+#   lf: 30
+#   hf: 400
+#   order: 8 
+#   sr: 2048
+
+# cwt_params:
+#   widths: [10, 90, 0.5]
+#   wavelet: 'cmorlet'
+#   channels: 3
+#   filter_len: 4096

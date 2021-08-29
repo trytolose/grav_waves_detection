@@ -1,0 +1,21 @@
+EXP_NAME: "min_max_check"
+FOLD: 0
+BS: 128
+EPOCH:  10
+MODEL:
+  NAME: "Wavenet" # "CustomModel_v1"
+  ENCODER: "efficientnet_b0"
+  IMG_SIZE: [256, 256]
+TRANSFORM: 
+  NAME: "src.transforms.stack_bandpass_transform"
+  CFG:
+    lf: 30
+    hf: 400
+    order: 8 
+    sr: 2048
+qtransform_params:
+  sr: 2048
+  fmin: 20 
+  fmax: 1024
+  hop_length: 32
+  bins_per_octave: 8

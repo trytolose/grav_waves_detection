@@ -1,10 +1,10 @@
 EXP_NAME: "CWT"
 FOLD: 0
-BS: 64
+BS: 128
 EPOCH: 6
 MODEL:
-  NAME: "CustomModel_CWT"
-  IMG_SIZE: [256, 512]
+  NAME: "CustomModel_v1"
+  IMG_SIZE: [256, 256]
 
 cwt_params:
   widths: [10, 90, 0.5]

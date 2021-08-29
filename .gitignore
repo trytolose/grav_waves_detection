@@ -6,3 +6,6 @@ outputs
 .vscode
 main.log
 src/__pycache__
+weights
+__pycache__
+logs

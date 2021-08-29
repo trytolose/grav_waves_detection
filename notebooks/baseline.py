@@ -49,12 +49,8 @@ class Wave_Block_true(nn.Module):
                     dilation=dilation_rate,
                 )
             )
-            self.filter_convs.append(
-                nn.Conv1d(out_channels, out_channels, kernel_size=3, padding=1)
-            )
-            self.gate_convs.append(
-                nn.Conv1d(out_channels, out_channels, kernel_size=3, padding=1)
-            )
+            self.filter_convs.append(nn.Conv1d(out_channels, out_channels, kernel_size=3, padding=1))
+            self.gate_convs.append(nn.Conv1d(out_channels, out_channels, kernel_size=3, padding=1))
             self.convs.append(nn.Conv1d(out_channels, out_channels, kernel_size=1))
 
         self.end_block = nn.Sequential(
@@ -90,23 +86,15 @@ class Andrewnet_v3_true(nn.Module):
         super().__init__()
         self.in_channels = in_channels
 
-        self.first_conv = nn.Sequential(
-            nn.Conv1d(in_channels, 64, 7, padding=3), nn.BatchNorm1d(64), nn.ReLU()
-        )
-        self.waveblock_1 = nn.Sequential(
-            Wave_Block_true(64, 16, 12), nn.BatchNorm1d(16)
-        )
+        self.first_conv = nn.Sequential(nn.Conv1d(in_channels, 64, 7, padding=3), nn.BatchNorm1d(64), nn.ReLU())
+        self.waveblock_1 = nn.Sequential(Wave_Block_true(64, 16, 12), nn.BatchNorm1d(16))
         self.waveblock_2 = nn.Sequential(Wave_Block_true(16, 32, 8), nn.BatchNorm1d(32))
         self.waveblock_3 = nn.Sequential(Wave_Block_true(32, 64, 4), nn.BatchNorm1d(64))
-        self.waveblock_4 = nn.Sequential(
-            Wave_Block_true(64, 128, 1), nn.BatchNorm1d(128)
-        )
-        self.waveblock_5 = nn.Sequential(
-            nn.Conv1d(128, 128, 7, padding=3), nn.BatchNorm1d(128), nn.ReLU()
-        )
+        self.waveblock_4 = nn.Sequential(Wave_Block_true(64, 128, 1), nn.BatchNorm1d(128))
+        self.waveblock_5 = nn.Sequential(nn.Conv1d(128, 128, 7, padding=3), nn.BatchNorm1d(128), nn.ReLU())
 
         self.dropout = nn.Dropout(p=0.2)
-        self.avgpool = nn.AdaptiveAvgPool1d(1)
+        self.avgpool = nn.AdaptiveMaxPool1d(1)
         self.fc = nn.Linear(128, 1)
 
     def forward(self, x):
@@ -134,7 +122,7 @@ class SignalDataset(Dataset):
         path = self.df.loc[idx, "path"]
         target = float(self.df.loc[idx, "target"])
         x = np.load(path)
-        x = x/np.max(x)
+        x = x / np.max(x)
         # x = self.scaler.transform(np.load(path).T).T
         return x, target
 
@@ -143,12 +131,8 @@ scaler = load(open("scaler.pkl", "rb"))
 train_ds = SignalDataset(df[df["fold"] != FOLD].reset_index(drop=True), scaler)
 val_ds = SignalDataset(df[df["fold"] == FOLD].reset_index(drop=True), scaler)
 
-train_loader = utils.DataLoader(
-    train_ds, shuffle=True, num_workers=11, batch_size=BS, pin_memory=True
-)
-val_loader = utils.DataLoader(
-    val_ds, shuffle=False, num_workers=11, batch_size=BS, pin_memory=True
-)
+train_loader = utils.DataLoader(train_ds, shuffle=True, num_workers=11, batch_size=BS, pin_memory=True)
+val_loader = utils.DataLoader(val_ds, shuffle=False, num_workers=11, batch_size=BS, pin_memory=True)
 
 
 model = Andrewnet_v3_true(3)
@@ -158,9 +142,7 @@ model.cuda()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
 loss_fn = nn.BCEWithLogitsLoss()
-scheduler = ReduceLROnPlateau(
-    optimizer, mode="max", verbose=True, patience=5, factor=0.5, eps=1e-12
-)
+scheduler = ReduceLROnPlateau(optimizer, mode="max", verbose=True, patience=5, factor=0.5, eps=1e-12)
 
 
 best_score = 0
@@ -200,8 +182,12 @@ for e in range(100):
 
     val_loss = np.mean(val_loss)
 
-    val_true = np.concatenate(val_true).reshape(-1,)
-    val_pred = np.concatenate(val_pred).reshape(-1,)
+    val_true = np.concatenate(val_true).reshape(
+        -1,
+    )
+    val_pred = np.concatenate(val_pred).reshape(
+        -1,
+    )
 
     final_score = metrics.roc_auc_score(val_true, val_pred)
 
