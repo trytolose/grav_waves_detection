@@ -1,8 +1,16 @@
 import numpy as np
-from torch.utils.data import Dataset
-from torch.utils.data import DataLoader
+import pandas as pd
+from torch.utils.data import DataLoader, WeightedRandomSampler, Dataset
 from functools import partial
 from pydoc import locate
+from sklearn.model_selection import StratifiedKFold
+from pathlib import Path
+import torch
+from dataclasses import dataclass
+from gwpy.timeseries import TimeSeries
+from src.transforms import min_max_scale
+import cv2
+
 
 class TrainDataset(Dataset):
     def __init__(self, df, transform=None, steps_per_epoch=150, mode="train", bs=64):
@@ -50,11 +58,124 @@ class InMemoryDataset(Dataset):
             return waves
 
 
+def gwpy_qtransform(x, img_size=(256, 256)):
+    x
+    x = min_max_scale(x)
+    images = []
+    for ii in range(3):
+        strain = TimeSeries(x[ii, :], t0=0, dt=1 / 2048)
+
+        hq = strain.q_transform(qrange=(4, 32), frange=(20, 400), logf=False, whiten=True, fduration=1, tres=2 / 1000)
+        images.append(hq)
+
+    img = np.stack([np.array(x).T[:-200] for x in images], axis=2)
+    img = cv2.resize(img, img_size)  # .astype(np.float16)
+    return img
+
+
+class TrainFromDiskDataset(Dataset):
+    def __init__(self, df, path, transform=None, mode="train"):
+        self.df = df
+        self.transform = transform
+        self.mode = mode
+        self.path = Path(path)
+
+    def __len__(self):
+        return len(self.df)
+
+    def __getitem__(self, idx):
+        file_path = self.path / f"{self.df.loc[idx, 'id']}.npy"
+        img = np.load(file_path).transpose(2, 0, 1)
+        if self.mode == "train" or self.mode == "val":
+            label = float(self.df.loc[idx, "target"])
+            return (
+                img,
+                label,
+            )
+        if self.mode == "test":
+            return img
+
+
+INPUT_PATH = Path("/home/trytolose/rinat/kaggle/grav_waves_detection/input")
+
+
+def get_loaders(cfg):
+    # df = pd.read_csv(INPUT_PATH / "training_labels.csv")
+    df = pd.read_csv(INPUT_PATH / "train_oof_overfit.csv")
+    files = list((INPUT_PATH / "train").rglob("*.npy"))
+    FILE_PATH_DICT = {x.stem: str(x) for x in files}
+    df["path"] = df["id"].apply(lambda x: FILE_PATH_DICT[x])
+
+    skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=69)
+    df["fold"] = -1
+    for f, (train_ids, val_ids) in enumerate(skf.split(df.index, y=df["target"])):
+        df.loc[val_ids, "fold"] = f
+
+    transform_f = partial(locate(cfg.TRANSFORM.NAME), params=cfg.TRANSFORM.CFG)
+
+    df_train = df[df["fold"] != cfg.FOLD].reset_index(drop=True)
+    df_val = df[df["fold"] == cfg.FOLD].reset_index(drop=True)
+
+    fp_fn_mask = ((df_train["target"] == 0) & (df_train["pred"] > 0.5)) | (
+        (df_train["target"] == 1) & (df_train["pred"] < 0.5)
+    )
+    tn_mask = (df_train["target"] == 0) & (df_train["pred"] < 0.5)
+    tp_mask = (df_train["target"] == 1) & (df_train["pred"] > 0.5)
+
+    df_train["weight"] = 0
+    df_train.loc[fp_fn_mask, "weight"] = (fp_fn_mask.sum() / len(df_train)) * 0.4
+    df_train.loc[tn_mask, "weight"] = (tn_mask.sum() / len(df_train)) * 0.4
+    df_train.loc[tp_mask, "weight"] = (tp_mask.sum() / len(df_train)) * 0.2
+
+    sampler = WeightedRandomSampler(df_train["weight"].values, len(df_train))
+    train_ds = TrainDataset(
+        df_train,
+        steps_per_epoch=cfg.STEPS_PER_EPOCH,
+        mode="train",
+        transform=transform_f,
+    )
+    val_ds = TrainDataset(
+        df_val,
+        mode="val",
+        transform=transform_f,
+    )
+
+    train_loader = DataLoader(
+        train_ds, shuffle=False, num_workers=cfg.NUM_WORKERS, batch_size=cfg.BS, pin_memory=False, sampler=sampler
+    )
+    val_loader = DataLoader(val_ds, shuffle=False, num_workers=cfg.NUM_WORKERS, batch_size=cfg.BS, pin_memory=False)
+    return train_loader, val_loader
+
+
+def get_disk_loader(cfg):
+    df = pd.read_csv(INPUT_PATH / "training_labels.csv")
+
+    files = list((INPUT_PATH / "train").rglob("*.npy"))
+    FILE_PATH_DICT = {x.stem: str(x) for x in files}
+    df["path"] = df["id"].apply(lambda x: FILE_PATH_DICT[x])
+
+    skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=69)
+    df["fold"] = -1
+    for f, (train_ids, val_ids) in enumerate(skf.split(df.index, y=df["target"])):
+        df.loc[val_ids, "fold"] = f
+
+    train_ds = TrainFromDiskDataset(
+        df[df["fold"] != cfg.FOLD].reset_index(drop=True), path="input/img_fp16_256", mode="train"
+    )
+    val_ds = TrainFromDiskDataset(
+        df[df["fold"] == cfg.FOLD].reset_index(drop=True), path="input/img_fp16_256", mode="val"
+    )
+
+    train_loader = DataLoader(train_ds, shuffle=True, num_workers=20, batch_size=cfg.BS, pin_memory=False)
+    val_loader = DataLoader(val_ds, shuffle=False, num_workers=20, batch_size=cfg.BS, pin_memory=False)
+    return train_loader, val_loader
+
+
 def get_in_memory_loaders(cfg):
- 
+
     folds = [0, 1, 2, 3, 4]
     folds.remove(cfg.FOLD)
-  
+
     transform_f = partial(locate(cfg.TRANSFORM.NAME), params=cfg.TRANSFORM.CFG)
 
     train_ds = InMemoryDataset(

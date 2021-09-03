@@ -1,0 +1,17 @@
+EXP_NAME: "012_effnetb0_gwpy"
+FOLD: 0
+BS: 128
+FP16: False
+EPOCH:  7
+MODEL:
+  NAME: "timm"
+  CFG:
+    encoder: "efficientnet_b0"
+TRANSFORM: 
+  NAME: "src.transforms.minmax_bandpass_transform"
+
+SCHEDULER:
+  NAME: "torch.optim.lr_scheduler.CosineAnnealingLR"
+  CFG:
+    T_max: 5
+    eta_min: 0.00001

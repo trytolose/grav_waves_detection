@@ -16,54 +16,30 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
-from src.dataset import TrainDataset, get_in_memory_loaders
+from src.dataset import TrainDataset, get_in_memory_loaders, get_disk_loader, get_loaders
 from src.models import get_model
 from src.utils.checkpoint import ModelCheckpoint
 from src.utils.utils import get_lr
 
-INPUT_PATH = Path("/home/trytolose/rinat/kaggle/grav_waves_detection/input")
+import warnings
 
-
-def get_loaders(cfg):
-    df = pd.read_csv(INPUT_PATH / "training_labels.csv")
-
-    files = list((INPUT_PATH / "train").rglob("*.npy"))
-    FILE_PATH_DICT = {x.stem: str(x) for x in files}
-    df["path"] = df["id"].apply(lambda x: FILE_PATH_DICT[x])
-
-    skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=69)
-    df["fold"] = -1
-    for f, (train_ids, val_ids) in enumerate(skf.split(df.index, y=df["target"])):
-        df.loc[val_ids, "fold"] = f
-
-    transform_f = partial(locate(cfg.TRANSFORM.NAME), params=cfg.TRANSFORM.CFG)
-
-    train_ds = TrainDataset(
-        df[df["fold"] != cfg.FOLD].reset_index(drop=True),
-        steps_per_epoch=cfg.STEPS_PER_EPOCH,
-        mode="train",
-        transform=transform_f,
-    )
-    val_ds = TrainDataset(
-        df[df["fold"] == cfg.FOLD].reset_index(drop=True),
-        mode="val",
-        transform=transform_f,
-    )
-
-    train_loader = DataLoader(train_ds, shuffle=True, num_workers=cfg.NUM_WORKERS, batch_size=cfg.BS, pin_memory=False)
-    val_loader = DataLoader(val_ds, shuffle=False, num_workers=cfg.NUM_WORKERS, batch_size=cfg.BS, pin_memory=False)
-    return train_loader, val_loader
+warnings.filterwarnings("ignore")
+torch.multiprocessing.set_sharing_strategy("file_system")
 
 
 def train(cfg):
     time_str = time.strftime("%Y-%m-%d-%H-%M-%S")
-    checkpoints_path = f"weights/{cfg.MODEL.NAME}/{cfg.EXP_NAME}_{time_str}/fold_{cfg.FOLD}"
-    tensorboard_logs = f"logs/tensorboard/{cfg.EXP_NAME}_{time_str}"
+    checkpoints_path = f"/home/trytolose/rinat/kaggle/grav_waves_detection/weights/{cfg.MODEL.NAME}/{cfg.EXP_NAME}/fold_{cfg.FOLD}"
+    tensorboard_logs = f"/home/trytolose/rinat/kaggle/grav_waves_detection/logs/tensorboard/{cfg.EXP_NAME}_{time_str}_f{cfg.FOLD}"
     if cfg.DEBUG is False:
         Path(tensorboard_logs).mkdir(parents=True, exist_ok=True)
         tensorboard_writer = SummaryWriter(tensorboard_logs)
         checkpoints = ModelCheckpoint(dirname=checkpoints_path, n_saved=cfg.N_SAVED)
-    train_loader, val_loader = get_loaders(cfg)
+    if cfg.MODEL.NAME == "timm":
+        train_loader, val_loader = get_disk_loader(cfg)
+    else:
+        train_loader, val_loader = get_loaders(cfg)
+
     # train_loader, val_loader = get_in_memory_loaders(cfg)
 
     model = get_model(cfg)
@@ -80,6 +56,9 @@ def train(cfg):
 
     best_score = 0
     iters = len(train_loader)
+
+    maxes = []
+    minis = []
     for e in range(cfg.EPOCH):
 
         # Training:
@@ -104,15 +83,17 @@ def train(cfg):
                 loss.backward()
                 optimizer.step()
             train_loss.append(loss.item())
-            scheduler.step(e + i / iters)
+            if e < scheduler.T_max:
+                scheduler.step(e + i / iters)
 
         val_loss = []
 
         val_true = []
         val_pred = []
         model.eval()
+
         with torch.no_grad():
-            for x, y in tqdm(val_loader, ncols=50, leave=False):
+            for i, (x, y) in tqdm(enumerate(val_loader), ncols=50, leave=False, total=len(val_loader)):
                 x = x.cuda().float()
                 y = y.cuda().float().unsqueeze(1)
                 pred = model(x)

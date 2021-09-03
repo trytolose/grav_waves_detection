@@ -1,0 +1,14 @@
+EXP_NAME: "010_wavenet_bandpass_fp32_cos_10"
+FOLD: 0
+BS: 180
+FP16: False
+EPOCH:  10
+MODEL:
+  NAME: "Wavenet"
+TRANSFORM: 
+  NAME: "src.transforms.minmax_bandpass_transform"
+
+SCHEDULER:
+  NAME: "torch.optim.lr_scheduler.CosineAnnealingLR"
+  CFG:
+    T_max: 10

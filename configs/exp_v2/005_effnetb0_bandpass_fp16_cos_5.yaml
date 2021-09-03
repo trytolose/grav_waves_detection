@@ -1,0 +1,24 @@
+EXP_NAME: "004_effnetb0_bandpass_fp16_cos5"
+FOLD: 0
+BS: 256
+FP16: True
+EPOCH:  7
+MODEL:
+  NAME: "CustomModel_v1"
+  CFG:
+    encoder: "efficientnet_b0"
+    img_w: 256
+    img_h: 256
+    sr: 2048
+    fmin: 20 
+    fmax: 1024
+    hop_length: 32
+    bins_per_octave: 8
+TRANSFORM: 
+  NAME: "src.transforms.minmax_bandpass_transform"
+
+SCHEDULER:
+  NAME: "torch.optim.lr_scheduler.CosineAnnealingLR"
+  CFG:
+    T_max: 5
+    eta_min: 0.00001

@@ -29,4 +29,24 @@
 
 # python main.py +exp_v2=000_wavenet_wo_bandpass.yaml
 # python main.py +exp_v2=001_wavenet_base_plus_bandpass # DEBUG=True
-python main.py +exp_v2=004_effnetb0_bandpass_fp16_cos #DEBUG=True
+# python main.py +exp_v2=004_effnetb0_bandpass_fp16_cos #DEBUG=True
+# python main.py +exp_v2=005_effnetb0_bandpass_fp16_cos_5.yaml
+
+
+
+# python main.py +exp_v2=006_effnetb0_bandpass_fp32_cos_5.yaml
+# python main.py +exp_v2=007_effnetb0_bandpass_fp32_cos_5_radam
+# python main.py +exp_v2=008_rexnet150_bandpass_fp32_cos_5 
+# python main.py +exp_v2=009_rexnet150_bandpass_fp32_cos_5_radam 
+# python main.py +exp_v2=010_wavenet_bandpass_fp32_cos_10
+# python main.py +exp_v2=011_rexnet150_bandpass_fp16_cos_5_radam_512
+
+# python create_spec.py
+# rm -rf input/img_fp16_256
+# mkdir input/img_fp16_256
+# python main.py +exp_v2=012_effnetb0_gwpy EXP_NAME=012_effnetb0_gwpy_wo_whiten_20_1024
+
+# python main.py +exp_v2=014_swin_fp32_cos_5 #DEBUG=True
+# python main.py -m +exp_v2=015_effnetb0_overfitted_OOF FOLD='range(0, 5)'
+
+python main.py -m +exp_v2=016_effnetb0_sampled_batch.yaml

@@ -1,0 +1,29 @@
+EXP_NAME: "011_rexnet150_bandpass_fp16_cos_5_radam_512"
+FOLD: 0
+BS: 50
+FP16: True
+EPOCH:  7
+MODEL:
+  NAME: "CustomModel_v1"
+  CFG:
+    encoder: "rexnet_150"
+    img_w: 512
+    img_h: 512
+    sr: 2048
+    fmin: 20 
+    fmax: 1024
+    hop_length: 32
+    bins_per_octave: 8
+TRANSFORM: 
+  NAME: "src.transforms.minmax_bandpass_transform"
+
+SCHEDULER:
+  NAME: "torch.optim.lr_scheduler.CosineAnnealingLR"
+  CFG:
+    T_max: 5
+    eta_min: 0.00001
+
+OPTIMIZER:
+  NAME: "src.optimizers.RAdam"
+  CFG:
+    lr: 0.001

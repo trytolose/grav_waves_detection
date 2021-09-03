@@ -1,0 +1,24 @@
+EXP_NAME: "016_effnetb0_sampled_batch"
+FOLD: 0
+BS: 128
+FP16: False
+EPOCH:  10
+MODEL:
+  NAME: "CustomModel_v1"
+  CFG:
+    encoder: "efficientnet_b0"
+    img_w: 256
+    img_h: 256
+    sr: 2048
+    fmin: 20 
+    fmax: 1024
+    hop_length: 32
+    bins_per_octave: 8
+TRANSFORM: 
+  NAME: "src.transforms.minmax_bandpass_transform"
+
+SCHEDULER:
+  NAME: "torch.optim.lr_scheduler.CosineAnnealingLR"
+  CFG:
+    T_max: 10
+    eta_min: 0.00001

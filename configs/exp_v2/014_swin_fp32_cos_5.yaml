@@ -1,0 +1,29 @@
+EXP_NAME: "014_swin_fp32_cos_5"
+FOLD: 0
+BS: 48
+FP16: False
+EPOCH:  7
+MODEL:
+  NAME: "CustomModel_v1"
+  CFG:
+    encoder: "swin_large_patch4_window7_224"
+    img_w: 224
+    img_h: 224
+    sr: 2048
+    fmin: 20 
+    fmax: 1024
+    hop_length: 32
+    bins_per_octave: 8
+TRANSFORM: 
+  NAME: "src.transforms.minmax_bandpass_transform"
+
+SCHEDULER:
+  NAME: "torch.optim.lr_scheduler.CosineAnnealingLR"
+  CFG:
+    T_max: 5
+    eta_min: 0.00001
+
+OPTIMIZER:
+  NAME: "torch.optim.Adam"
+  CFG:
+    lr: 0.0001
