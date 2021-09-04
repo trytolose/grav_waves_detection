@@ -20,7 +20,7 @@ from src.dataset import TrainDataset, get_in_memory_loaders, get_disk_loader, ge
 from src.models import get_model
 from src.utils.checkpoint import ModelCheckpoint
 from src.utils.utils import get_lr
-
+from src.loops import get_dataset_statistics
 import warnings
 
 warnings.filterwarnings("ignore")
@@ -29,8 +29,12 @@ torch.multiprocessing.set_sharing_strategy("file_system")
 
 def train(cfg):
     time_str = time.strftime("%Y-%m-%d-%H-%M-%S")
-    checkpoints_path = f"/home/trytolose/rinat/kaggle/grav_waves_detection/weights/{cfg.MODEL.NAME}/{cfg.EXP_NAME}/fold_{cfg.FOLD}"
-    tensorboard_logs = f"/home/trytolose/rinat/kaggle/grav_waves_detection/logs/tensorboard/{cfg.EXP_NAME}_{time_str}_f{cfg.FOLD}"
+    checkpoints_path = (
+        f"/home/trytolose/rinat/kaggle/grav_waves_detection/weights/{cfg.MODEL.NAME}/{cfg.EXP_NAME}/fold_{cfg.FOLD}"
+    )
+    tensorboard_logs = (
+        f"/home/trytolose/rinat/kaggle/grav_waves_detection/logs/tensorboard/{cfg.EXP_NAME}_{time_str}_f{cfg.FOLD}"
+    )
     if cfg.DEBUG is False:
         Path(tensorboard_logs).mkdir(parents=True, exist_ok=True)
         tensorboard_writer = SummaryWriter(tensorboard_logs)
@@ -57,8 +61,14 @@ def train(cfg):
     best_score = 0
     iters = len(train_loader)
 
-    maxes = []
-    minis = []
+    if cfg.MODEL.USE_SCALER is True and cfg.MODEL.NAME=="CustomModel_v1":
+        stats = get_dataset_statistics(train_loader, val_loader, model)
+        scaler = locate(cfg.SCALER.NAME)(cfg.SCALER.MODE, cfg.SCALER.CHANNELS)
+        scaler.set_stats(stats)
+        model.set_scaler(scaler)
+        for k, v in stats.items():
+            print(f"{k}: {v}")
+
     for e in range(cfg.EPOCH):
 
         # Training:

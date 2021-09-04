@@ -111,7 +111,7 @@ def get_loaders(cfg):
     for f, (train_ids, val_ids) in enumerate(skf.split(df.index, y=df["target"])):
         df.loc[val_ids, "fold"] = f
 
-    transform_f = partial(locate(cfg.TRANSFORM.NAME), params=cfg.TRANSFORM.CFG)
+    transform_f = partial(locate(cfg.TRANSFORM.NAME), **cfg.TRANSFORM.CFG)
 
     df_train = df[df["fold"] != cfg.FOLD].reset_index(drop=True)
     df_val = df[df["fold"] == cfg.FOLD].reset_index(drop=True)
@@ -141,7 +141,11 @@ def get_loaders(cfg):
     )
 
     train_loader = DataLoader(
-        train_ds, shuffle=False, num_workers=cfg.NUM_WORKERS, batch_size=cfg.BS, pin_memory=False, sampler=sampler
+        train_ds,
+        shuffle=True,
+        num_workers=cfg.NUM_WORKERS,
+        batch_size=cfg.BS,
+        pin_memory=False,  # sampler=sampler
     )
     val_loader = DataLoader(val_ds, shuffle=False, num_workers=cfg.NUM_WORKERS, batch_size=cfg.BS, pin_memory=False)
     return train_loader, val_loader

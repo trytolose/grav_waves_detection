@@ -23,9 +23,15 @@ LOSS:
 
 MODEL:
   NAME: "src.model.CustomModel_v1"
+  USE_SCALER: False
   CFG: {}
   # ENCODER: "efficientnet_b0"
   # IMG_SIZE: [256, 256]
+
+SCALER:
+  NAME: "src.transforms.Scaler"
+  MODE: "minmax"
+  CHANNELS: 3
 
 OPTIMIZER:
   NAME: "torch.optim.Adam"

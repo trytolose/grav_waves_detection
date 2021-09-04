@@ -1,0 +1,35 @@
+EXP_NAME: "023_effnetb0_standart_scaler_3ch"
+FOLD: 0
+BS: 128
+FP16: False
+EPOCH:  7
+MODEL:
+  NAME: "CustomModel_v1"
+  USE_SCALER: True
+  CFG:
+    encoder: "efficientnet_b0"
+    img_w: 256
+    img_h: 256
+    sr: 2048
+    fmin: 20 
+    fmax: 1024
+    hop_length: 32
+    bins_per_octave: 8
+
+SCALER:
+  NAME: "src.transforms.Scaler"
+  CFG:
+    mode: "standart"
+    ds_min: [3.9533632e-10]  # [7.3294532e-10, 3.9533632e-10, 4.6966782e-09]
+    ds_max: [3.014734] # [0.7001061, 0.7295271, 3.014734 ]
+    ds_mean: [0.0035577 , 0.00383173, 0.02115787]
+    ds_std: [0.00104504, 0.00112391, 0.00185711]
+
+TRANSFORM: 
+  NAME: "src.transforms.minmax_bandpass_transform"
+
+SCHEDULER:
+  NAME: "torch.optim.lr_scheduler.CosineAnnealingLR"
+  CFG:
+    T_max: 5
+    eta_min: 0.00001

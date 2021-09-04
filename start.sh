@@ -49,4 +49,17 @@
 # python main.py +exp_v2=014_swin_fp32_cos_5 #DEBUG=True
 # python main.py -m +exp_v2=015_effnetb0_overfitted_OOF FOLD='range(0, 5)'
 
-python main.py -m +exp_v2=016_effnetb0_sampled_batch.yaml
+# python main.py -m +exp_v2=016_effnetb0_sampled_batch.yaml
+# python main.py -m +exp_v2=017_wavenet_bandpass_fp32_cos_15_64bs
+# python main.py +exp_v2=018_wavenet_bandpass_fp32_cos_15_400bs
+# python main.py +exp_v2=019_effnetb0_fp32_big_spec
+# python main.py +exp_v2=020_effnetb0_fp32_big_spec_30-500
+# python main.py +exp_v2=021_effnetb0_fp32_bp30_800 DEBUG=True
+
+
+# python main.py +exp_v2=022_effnetb0_standart_scaler_1ch
+# python main.py +exp_v2=023_effnetb0_standart_scaler_3ch
+# python main.py +exp_v2=024_effnetb0_minmax_scaler_1ch
+# python main.py +exp_v2=025_effnetb0_minmax_scaler_3ch
+
+python main.py +exp_v2=026_effnetb0_standart_scaler_1ch_wo_minmax

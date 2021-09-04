@@ -1,0 +1,31 @@
+EXP_NAME: "026_effnetb0_standart_scaler_1ch_wo_minmax"
+FOLD: 0
+BS: 128
+FP16: False
+EPOCH:  7
+MODEL:
+  NAME: "CustomModel_v1"
+  USE_SCALER: True
+  CFG:
+    encoder: "efficientnet_b0"
+    img_w: 256
+    img_h: 256
+    sr: 2048
+    fmin: 20 
+    fmax: 1024
+    hop_length: 32
+    bins_per_octave: 8
+
+SCALER:
+  NAME: "src.transforms.Scaler"
+  CFG:
+    mode: "standart"
+
+TRANSFORM: 
+  NAME: "src.transforms.bandpass_transform"
+
+SCHEDULER:
+  NAME: "torch.optim.lr_scheduler.CosineAnnealingLR"
+  CFG:
+    T_max: 5
+    eta_min: 0.00001

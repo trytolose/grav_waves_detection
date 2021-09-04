@@ -40,12 +40,23 @@ class CustomModel_v1(nn.Module):
         self.cqt = CQT1992v2(sr=sr, hop_length=hop_length, fmin=fmin, fmax=fmax, bins_per_octave=bins_per_octave)
         self.h, self.w = img_h, img_w
 
+        self.scaler = None
+
+    def set_scaler(self, scaler):
+        self.scaler = scaler
+
     def forward(self, x):
+        x = self.spec(x)
+        if self.scaler is not None:
+            x = self.scaler(x)
+        output = self.model(x)
+        return output
+
+    def spec(self, x):
         bs, ch, sig_len = x.shape
-        x = x.view(-1, sig_len)
+        x = x.view(-1, sig_len).unsqueeze(1)
         x = self.cqt(x).unsqueeze(1)
         x = nn.functional.interpolate(x, (self.h, self.w))
         _, _, h, w = x.shape
         x = x.view(bs, 3, h, w)
-        output = self.model(x)
-        return output
+        return x
