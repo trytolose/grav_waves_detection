@@ -10,6 +10,8 @@ STEPS_PER_EPOCH: 2000
 BS: 128
 NUM_WORKERS: 12
 FP16: False
+GRAD_CLIP: 0
+TRAIN_FOLD: -1
 
 TRANSFORM: 
   NAME: "src.transforms.stack_turkey"
@@ -30,8 +32,8 @@ MODEL:
 
 SCALER:
   NAME: "src.transforms.Scaler"
-  MODE: "minmax"
-  CHANNELS: 3
+  MODE: "standart"
+  CHANNELS: 1
 
 OPTIMIZER:
   NAME: "torch.optim.Adam"
@@ -43,28 +45,4 @@ SCHEDULER:
   CFG: {}
 
 N_SAVED: 5
-
-# qtransform_params:
-#   sr: 2048
-#   fmin: 20 
-#   fmax: 1024
-#   hop_length: 32
-#   bins_per_octave: 8
-#   # sr: 2048
-#   # fmin: 30 
-#   # fmax: 400
-#   # hop_length: 64
-#   # bins_per_octave: 12
-#   # filter_scale: 0.5
-
-# bandpass_param:
-#   lf: 30
-#   hf: 400
-#   order: 8 
-#   sr: 2048
-
-# cwt_params:
-#   widths: [10, 90, 0.5]
-#   wavelet: 'cmorlet'
-#   channels: 3
-#   filter_len: 4096
+TENSORBOARD_DIR: "/home/trytolose/rinat/kaggle/grav_waves_detection/logs/tensorboard"

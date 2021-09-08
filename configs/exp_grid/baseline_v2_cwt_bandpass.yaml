@@ -1,0 +1,32 @@
+EXP_NAME: "baseline_v2_cwt_bandpass"
+FOLD: 0
+BS: 64
+FP16: False
+EPOCH:  7
+TRAIN_FOLD: -1
+
+MODEL:
+  NAME: "CustomModel_CWT"
+  CFG:
+    encoder: "efficientnet_b0"
+    img_w: 128
+    img_h: 128
+    nv: 8  # number of voices
+    sr: 2048  # sample rate (Hz)
+    flow: 20  # lowest frequency of interest (Hz)
+    fhigh: 500 
+TRANSFORM: 
+  NAME: "src.transforms.minmax_bandpass_transform"
+  CFG:
+    lf: 20
+    hf: 500
+
+SCHEDULER:
+  NAME: "torch.optim.lr_scheduler.CosineAnnealingLR"
+  CFG:
+    T_max: 5
+    eta_min: 0.00001
+
+N_SAVED: 1
+
+TENSORBOARD_DIR: "/home/trytolose/rinat/kaggle/grav_waves_detection/logs/tensorboard_grid"

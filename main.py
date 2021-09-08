@@ -1,6 +1,4 @@
-import os
 import time
-from functools import partial
 from pathlib import Path
 from pydoc import locate
 
@@ -10,16 +8,15 @@ import pandas as pd
 import torch
 from omegaconf import DictConfig, OmegaConf
 from sklearn import metrics
-from sklearn.model_selection import StratifiedKFold
 from torch.cuda.amp import GradScaler, autocast
-from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
+from torch.nn.utils import clip_grad_norm_
 from tqdm import tqdm
 
-from src.dataset import TrainDataset, get_in_memory_loaders, get_disk_loader, get_loaders
+from src.dataset import get_in_memory_loaders, get_disk_loader, get_loaders
 from src.models import get_model
 from src.utils.checkpoint import ModelCheckpoint
-from src.utils.utils import get_lr
+from src.utils.utils import get_lr, get_gradient_norm
 from src.loops import get_dataset_statistics
 import warnings
 
@@ -32,12 +29,10 @@ def train(cfg):
     checkpoints_path = (
         f"/home/trytolose/rinat/kaggle/grav_waves_detection/weights/{cfg.MODEL.NAME}/{cfg.EXP_NAME}/fold_{cfg.FOLD}"
     )
-    tensorboard_logs = (
-        f"/home/trytolose/rinat/kaggle/grav_waves_detection/logs/tensorboard/{cfg.EXP_NAME}_{time_str}_f{cfg.FOLD}"
-    )
+    tensorboard_logs = f"{cfg.TENSORBOARD_DIR}/{cfg.EXP_NAME}_{time_str}_f{cfg.FOLD}"
     if cfg.DEBUG is False:
         Path(tensorboard_logs).mkdir(parents=True, exist_ok=True)
-        tensorboard_writer = SummaryWriter(tensorboard_logs)
+        tensorboard_writer = SummaryWriter(tensorboard_logs, flush_secs=30)
         checkpoints = ModelCheckpoint(dirname=checkpoints_path, n_saved=cfg.N_SAVED)
     if cfg.MODEL.NAME == "timm":
         train_loader, val_loader = get_disk_loader(cfg)
@@ -61,11 +56,11 @@ def train(cfg):
     best_score = 0
     iters = len(train_loader)
 
-    if cfg.MODEL.USE_SCALER is True and cfg.MODEL.NAME=="CustomModel_v1":
+    if cfg.MODEL.USE_SCALER is True and cfg.MODEL.NAME == "CustomModel_v1":
         stats = get_dataset_statistics(train_loader, val_loader, model)
-        scaler = locate(cfg.SCALER.NAME)(cfg.SCALER.MODE, cfg.SCALER.CHANNELS)
-        scaler.set_stats(stats)
-        model.set_scaler(scaler)
+        spec_scaler = locate(cfg.SCALER.NAME)(cfg.SCALER.MODE, cfg.SCALER.CHANNELS)
+        spec_scaler.set_stats(stats)
+        model.set_scaler(spec_scaler)
         for k, v in stats.items():
             print(f"{k}: {v}")
 
@@ -85,13 +80,19 @@ def train(cfg):
                     pred = model(x)
                     loss = loss_fn(pred, y)
                 scaler.scale(loss).backward()
+                # if cfg.GRAD_CLIP !=0 :
+                #     clip_grad_norm_(model.parameters(), max_norm=cfg.GRAD_CLIP)
                 scaler.step(optimizer)
                 scaler.update()
             else:
                 pred = model(x)
                 loss = loss_fn(pred, y)
                 loss.backward()
+                if cfg.GRAD_CLIP != 0:
+                    clip_grad_norm_(model.parameters(), max_norm=cfg.GRAD_CLIP)
                 optimizer.step()
+            # if i % 30 == 0:
+            #     print(get_gradient_norm(model))
             train_loss.append(loss.item())
             if e < scheduler.T_max:
                 scheduler.step(e + i / iters)
@@ -124,12 +125,14 @@ def train(cfg):
         )
 
         final_score = metrics.roc_auc_score(val_true, val_pred)
+        # grad_norm = get_gradient_norm(model)
         print(
             f"Epoch: {e:03d}; train_loss: {train_loss:.05f} val_loss: {val_loss:.05f}; roc: {final_score:.5f}",
             end=" ",
         )
         if cfg.DEBUG is False:
             tensorboard_writer.add_scalar("Learning rate", get_lr(optimizer), e)
+            # tensorboard_writer.add_scalar("Grad_norm", grad_norm, e)
             tensorboard_writer.add_scalar("Loss/train", train_loss, e)
             tensorboard_writer.add_scalar("Loss/valid", val_loss, e)
             tensorboard_writer.add_scalar("ROC_AUC/valid", final_score, e)

@@ -85,6 +85,70 @@ class Andrewnet_v3_true(nn.Module):
         x = self.fc(x.view(-1, 128))
         return x
 
+class Andrewnet_v4(nn.Module):
+    def __init__(self, in_channels=3):
+        super().__init__()
+        self.in_channels = in_channels
+
+        self.first_conv = nn.Sequential(nn.Conv1d(in_channels, 16, 7, padding=3), nn.BatchNorm1d(16), nn.ReLU())
+        self.waveblock_1 = nn.Sequential(Wave_Block_true(16, 16, 8), nn.BatchNorm1d(16))
+        self.waveblock_2 = nn.Sequential(Wave_Block_true(16, 32, 4), nn.BatchNorm1d(32))
+        self.waveblock_3 = nn.Sequential(Wave_Block_true(32, 64, 2), nn.BatchNorm1d(64))
+        self.waveblock_4 = nn.Sequential(Wave_Block_true(64, 128, 1), nn.BatchNorm1d(128))
+        # self.waveblock_5 = nn.Sequential(nn.Conv1d(128, 128, 7, padding=3), nn.BatchNorm1d(128), nn.ReLU())
+        
+        self.pool = nn.AdaptiveMaxPool1d(1)
+        self.fc = nn.Linear(128, 1)
+
+    def forward(self, x):
+        x = self.first_conv(x)
+        x = self.waveblock_1(x)
+        x = self.waveblock_2(x)
+        x = self.waveblock_3(x)
+        x = self.waveblock_4(x)
+        # x = self.waveblock_5(x)
+        # x = self.dropout(x)
+        x = self.pool(x)
+        # x = self.attn(x.transpose(2,1))
+        x = self.fc(x.view(-1, 128))
+        return x
+
+
+
+class Andrewnet_v5(nn.Module):
+    def __init__(self, in_channels=3):
+        super().__init__()
+        self.in_channels = in_channels
+
+        self.first_conv = nn.Sequential(nn.Conv1d(in_channels, 16, 7, padding=3), nn.BatchNorm1d(16), nn.ReLU())
+        self.waveblock_1 = nn.Sequential(Wave_Block_true(16, 16, 8), nn.BatchNorm1d(16))
+        self.waveblock_2 = nn.Sequential(Wave_Block_true(16, 32, 4), nn.BatchNorm1d(32))
+        self.waveblock_3 = nn.Sequential(Wave_Block_true(32, 64, 2), nn.BatchNorm1d(64))
+        self.waveblock_4 = nn.Sequential(Wave_Block_true(64, 128, 1), nn.BatchNorm1d(128))
+        self.pool = nn.MaxPool1d(8)
+        self.fc1 = nn.Sequential(nn.Linear(128, 1), nn.ReLU())
+        self.fc2 = nn.Sequential(nn.Linear(512, 1), nn.ReLU())
+
+    def forward(self, x):
+        bs = x.shape[0]
+        x = self.first_conv(x)
+        x = self.waveblock_1(x)
+        x = self.waveblock_2(x)
+        x = self.waveblock_3(x)
+        x = self.waveblock_4(x)
+
+        x = self.pool(x)
+        x = x.permute(0, 2, 1)
+        x = self.fc1(x)
+        x = x.view(bs, -1)
+        x = self.fc2(x)
+        
+        return x
+
+
+
+
+
 
 class Attention(nn.Module):
     def __init__(self, step_dim, features_dim):

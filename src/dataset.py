@@ -113,7 +113,11 @@ def get_loaders(cfg):
 
     transform_f = partial(locate(cfg.TRANSFORM.NAME), **cfg.TRANSFORM.CFG)
 
-    df_train = df[df["fold"] != cfg.FOLD].reset_index(drop=True)
+    if cfg.TRAIN_FOLD == -1:
+        df_train = df[df["fold"] != cfg.FOLD].reset_index(drop=True)
+    else:
+        df_train = df[df["fold"] == cfg.TRAIN_FOLD].reset_index(drop=True)
+
     df_val = df[df["fold"] == cfg.FOLD].reset_index(drop=True)
 
     fp_fn_mask = ((df_train["target"] == 0) & (df_train["pred"] > 0.5)) | (

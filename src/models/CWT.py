@@ -2,205 +2,132 @@ import torch
 import torch.nn as nn
 import numpy as np
 import timm
+import math
 
 
 class CustomModel_CWT(nn.Module):
-    def __init__(self, cfg, pretrained=True):
+    def __init__(
+        self,
+        encoder="efficientnet_b0",
+        pretrained=True,
+        nv=8,  # number of voices
+        sr=2048,  # sample rate (Hz)
+        flow=8,  # lowest frequency of interest (Hz)
+        fhigh=500,  # highest frequency of interest (Hz)
+        img_h=256,
+        img_w=256,
+    ):
         super().__init__()
-        self.model = timm.create_model("efficientnet_b0", pretrained=pretrained, in_chans=3, num_classes=1)
-        cwt_params = dict(cfg.cwt_params)
-        start, end, step = tuple(cwt_params["widths"])
-        cwt_params["widths"] = np.arange(start, end, step)
-        self.cwt = CWT_v2(**cwt_params)
-        self.h, self.w = cfg.MODEL.IMG_SIZE
+        self.model = timm.create_model(encoder, pretrained=pretrained, in_chans=3, num_classes=1)
+        self.cwt = CWT_TF(
+            nv=nv,
+            sr=sr,
+            flow=flow,
+            fhigh=fhigh,
+        )
+        self.h, self.w = img_h, img_w
+
+        self.scaler = None
+
+    def set_scaler(self, scaler):
+        self.scaler = scaler
 
     def forward(self, x):
-        x = self.cwt(x)
-        x = torch.absolute(x)
-        x = nn.functional.interpolate(x, (self.h, self.w))
+        x = self.spec(x)
+        if self.scaler is not None:
+            x = self.scaler(x)
         output = self.model(x)
         return output
 
+    def spec(self, x):
+        bs, ch, sig_len = x.shape
+        x = x.view(-1, sig_len)
+        x = self.cwt(x).unsqueeze(1)
+        x = nn.functional.interpolate(x, (self.h, self.w)).float()
+        _, _, h, w = x.shape
+        x = x.view(bs, 3, h, w)
+        return x
 
-class CWT(nn.Module):
+
+class CWT_TF(nn.Module):
     def __init__(
         self,
-        widths,
-        wavelet="ricker",
-        channels=1,
-        filter_len=2000,
+        nv=8,  # number of voices
+        sr=2048,  # sample rate (Hz)
+        flow=8,  # lowest frequency of interest (Hz)
+        fhigh=500,  # highest frequency of interest (Hz)
     ):
-        """PyTorch implementation of a continuous wavelet transform.
-
-        Args:
-            widths (iterable): The wavelet scales to use, e.g. np.arange(1, 33)
-            wavelet (str, optional): Name of wavelet. Either "ricker" or "morlet".
-            Defaults to "ricker".
-            channels (int, optional): Number of audio channels in the input. Defaults to 3.
-            filter_len (int, optional): Size of the wavelet filter bank. Set to
-            the number of samples but can be smaller to save memory. Defaults to 2000.
-        """
         super().__init__()
-        self.widths = widths
-        self.wavelet = getattr(self, wavelet)
-        self.filter_len = filter_len
-        self.channels = channels
-        self.wavelet_bank = self._build_wavelet_bank()
+        self.nv = nv
+        self.sr = sr
+        self.flow = flow
+        self.fhigh = fhigh
 
-    def ricker(self, points, a):
-        # https://github.com/scipy/scipy/blob/v1.7.1/scipy/signal/wavelets.py#L262-L306
-        A = 2 / (np.sqrt(3 * a) * (np.pi ** 0.25))
-        wsq = a ** 2
-        vec = torch.arange(0, points) - (points - 1.0) / 2
-        xsq = vec ** 2
-        mod = 1 - xsq / wsq
-        gauss = torch.exp(-xsq / (2 * wsq))
-        total = A * mod * gauss
-        return total
+        self.get_const()
 
-    def morlet(self, points, s):
-        x = torch.arange(0, points) - (points - 1.0) / 2
-        x = x / s
-        # https://pywavelets.readthedocs.io/en/latest/ref/cwt.html#morlet-wavelet
-        wavelet = torch.exp(-(x ** 2.0) / 2.0) * torch.cos(5.0 * x)
-        output = np.sqrt(1 / s) * wavelet
-        return output
-
-    def cmorlet(self, points, s, wavelet_width=1, center_freq=1):
-        # https://pywavelets.readthedocs.io/en/latest/ref/cwt.html#complex-morlet-wavelets
-        x = torch.arange(0, points) - (points - 1.0) / 2
-        x = x / s
-        norm_constant = np.sqrt(np.pi * wavelet_width)
-        exp_term = torch.exp(-(x ** 2) / wavelet_width)
-        kernel_base = exp_term / norm_constant
-        kernel = kernel_base * torch.exp(1j * 2 * np.pi * center_freq * x)
-        return kernel
-
-    def _build_wavelet_bank(self):
-        """This function builds a 2D wavelet filter using wavelets at different scales
-
-        Returns:
-            tensor: Tensor of shape (num_widths, 1, channels, filter_len)
+    def kron(self, a, b):
         """
-        wavelet_bank = [torch.conj(torch.flip(self.wavelet(self.filter_len, w), [-1])) for w in self.widths]
-        wavelet_bank = torch.stack(wavelet_bank)
-        wavelet_bank = wavelet_bank.view(wavelet_bank.shape[0], 1, 1, wavelet_bank.shape[1])
-        wavelet_bank = torch.cat([wavelet_bank] * self.channels, 2)
-        return wavelet_bank
+        Kronecker product of matrices a and b with leading batch dimensions.
+        Batch dimensions are broadcast. The number of them mush
+        :type a: torch.Tensor
+        :type b: torch.Tensor
+        :rtype: torch.Tensor
+        """
+        siz1 = torch.Size(torch.tensor(a.shape[-2:]) * torch.tensor(b.shape[-2:]))
+        res = a.unsqueeze(-1).unsqueeze(-3) * b.unsqueeze(-2).unsqueeze(-4)
+        siz0 = res.shape[:-4]
+        return res.reshape(siz0 + siz1)
+
+    def get_const(self):
+
+        input_shape = np.array([3, 4096])
+        max_scale = input_shape[-1] // (np.sqrt(2) * 2)
+        if max_scale <= 1:
+            max_scale = input_shape[-1] // 2
+        max_scale = np.floor(self.nv * np.log2(max_scale))
+
+        scales = 2 * (2 ** (1 / self.nv)) ** np.arange(0, max_scale + 1)
+
+        frequencies = self.sr * (6 / (2 * np.pi)) / scales
+        frequencies = frequencies[frequencies >= self.flow]  # remove low frequencies
+        scales = scales[0 : len(frequencies)]
+        frequencies = frequencies[frequencies <= self.fhigh]  # remove high frequencies
+        scales = scales[len(scales) - len(frequencies) : len(scales)]
+        # # wavft
+        padvalue = input_shape[-1] // 2
+        n = padvalue * 2 + input_shape[-1]
+        omega = np.arange(1, math.floor(n / 2) + 1, dtype=np.float64)
+        omega = omega * (2 * np.pi) / n
+        omega = np.concatenate(
+            (np.array([0]), omega, -omega[np.arange(math.floor((n - 1) / 2), 0, -1, dtype=int) - 1])
+        )
+        _wft = np.zeros([scales.size, omega.size])
+        for jj, scale in enumerate(scales):
+            expnt = -((scale * omega - 6) ** 2) / 2 * (omega > 0)
+            _wft[jj,] = (
+                2 * np.exp(expnt) * (omega > 0)
+            )
+
+        # # parameters we want to use during call():
+        # self.wft = tf.Variable(_wft, trainable=self.trainable) # yes, the wavelets can be trainable if desired
+        self.wft = torch.tensor(_wft).cuda()
+        self.padvalue = padvalue
+        self.num_scales = scales.shape[-1]
+        self.cron_ones_tensor = torch.ones(self.num_scales, 1).type(torch.complex64).cuda()
 
     def forward(self, x):
-        """Compute CWT arrays from a batch of multi-channel inputs
 
-        Args:
-            x (torch.tensor): Tensor of shape (batch_size, channels, time)
+        bs = x.shape[0]
+        x_left_pad = torch.flip(x[:, 0 : self.padvalue], dims=[1])
+        x_right_pad = torch.flip(x[:, -self.padvalue :], dims=[1])
+        x_padded = torch.cat([x_left_pad, x, x_right_pad], dim=1)
+        x_padded.shape
 
-        Returns:
-            torch.tensor: Tensor of shape (batch_size, channels, widths, time)
-        """
-        x = x.unsqueeze(1)
-        if self.wavelet_bank.is_complex():
-            wavelet_real = self.wavelet_bank.real.cuda()  # .to(device=x.device, dtype=x.dtype)
-            wavelet_imag = self.wavelet_bank.imag.cuda()  # .to(device=x.device, dtype=x.dtype)
+        x_padded = x_padded.type(torch.complex128)
+        f = torch.fft.fft(x_padded, dim=1)
 
-            output_real = nn.functional.conv2d(x, wavelet_real, padding="same")
-            output_imag = nn.functional.conv2d(x, wavelet_imag, padding="same")
-            output_real = torch.transpose(output_real, 1, 2)
-            output_imag = torch.transpose(output_imag, 1, 2)
-            return torch.complex(output_real, output_imag)
-            # return output_real, output_imag
-        else:
-            self.wavelet_bank = self.wavelet_bank.cuda()  # .to(device=x.device, dtype=x.dtype)
-            output = nn.functional.conv2d(x, self.wavelet_bank, padding="same")
-            return torch.transpose(output, 1, 2)
+        kron_prod = self.kron(self.cron_ones_tensor.unsqueeze(0).repeat(bs, 1, 1), f.unsqueeze(1))
+        cwtcfs = torch.fft.ifft(kron_prod * self.wft.unsqueeze(0).repeat(bs, 1, 1), dim=2)
 
-
-class CWT_v2(nn.Module):
-    def __init__(
-        self,
-        widths,
-        wavelet="ricker",
-        channels=1,
-        filter_len=2000,
-    ):
-        """PyTorch implementation of a continuous wavelet transform.
-
-        Args:
-            widths (iterable): The wavelet scales to use, e.g. np.arange(1, 33)
-            wavelet (str, optional): Name of wavelet. Either "ricker" or "morlet".
-            Defaults to "ricker".
-            channels (int, optional): Number of audio channels in the input. Defaults to 3.
-            filter_len (int, optional): Size of the wavelet filter bank. Set to
-            the number of samples but can be smaller to save memory. Defaults to 2000.
-        """
-        super().__init__()
-        self.widths = widths
-        self.wavelet = getattr(self, wavelet)
-        self.filter_len = filter_len
-        self.channels = channels
-        self.wavelet_bank = self._build_wavelet_bank()
-
-        self.wavelet_real = self.wavelet_bank.real.cuda()  # .cuda()  # .to(device=x.device, dtype=x.dtype)
-        self.wavelet_imag = self.wavelet_bank.imag.cuda()  # .cuda()  # .to(device=x.device, dtype=x.dtype)
-        self.wavelet_bank = self.wavelet_bank.cuda()  # .cuda()  # .to(device=x.device, dtype=x.dtype)
-
-    def ricker(self, points, a):
-        # https://github.com/scipy/scipy/blob/v1.7.1/scipy/signal/wavelets.py#L262-L306
-        A = 2 / (np.sqrt(3 * a) * (np.pi ** 0.25))
-        wsq = a ** 2
-        vec = torch.arange(0, points) - (points - 1.0) / 2
-        xsq = vec ** 2
-        mod = 1 - xsq / wsq
-        gauss = torch.exp(-xsq / (2 * wsq))
-        total = A * mod * gauss
-        return total
-
-    def morlet(self, points, s):
-        x = torch.arange(0, points) - (points - 1.0) / 2
-        x = x / s
-        # https://pywavelets.readthedocs.io/en/latest/ref/cwt.html#morlet-wavelet
-        wavelet = torch.exp(-(x ** 2.0) / 2.0) * torch.cos(5.0 * x)
-        output = np.sqrt(1 / s) * wavelet
-        return output
-
-    def cmorlet(self, points, s, wavelet_width=1, center_freq=1):
-        # https://pywavelets.readthedocs.io/en/latest/ref/cwt.html#complex-morlet-wavelets
-        x = torch.arange(0, points) - (points - 1.0) / 2
-        x = x / s
-        norm_constant = np.sqrt(np.pi * wavelet_width)
-        exp_term = torch.exp(-(x ** 2) / wavelet_width)
-        kernel_base = exp_term / norm_constant
-        kernel = kernel_base * torch.exp(1j * 2 * np.pi * center_freq * x)
-        return kernel
-
-    def _build_wavelet_bank(self):
-        """This function builds a 2D wavelet filter using wavelets at different scales
-
-        Returns:
-            tensor: Tensor of shape (num_widths, 1, channels, filter_len)
-        """
-        wavelet_bank = [torch.conj(torch.flip(self.wavelet(self.filter_len, w), [-1])) for w in self.widths]
-        wavelet_bank = torch.stack(wavelet_bank)
-        wavelet_bank = wavelet_bank.view(wavelet_bank.shape[0], 1, 1, wavelet_bank.shape[1])
-        wavelet_bank = torch.cat([wavelet_bank] * self.channels, 2)
-        return wavelet_bank
-
-    def forward(self, x):
-        """Compute CWT arrays from a batch of multi-channel inputs
-
-        Args:
-            x (torch.tensor): Tensor of shape (batch_size, channels, time)
-
-        Returns:
-            torch.tensor: Tensor of shape (batch_size, channels, widths, time)
-        """
-        x = x.unsqueeze(1)
-        if self.wavelet_bank.is_complex():
-            output_real = nn.functional.conv2d(x, self.wavelet_real, padding="same")
-            output_imag = nn.functional.conv2d(x, self.wavelet_imag, padding="same")
-            output_real = torch.transpose(output_real, 1, 2)
-            output_imag = torch.transpose(output_imag, 1, 2)
-            return torch.complex(output_real, output_imag)
-            # return output_real, output_imag
-        else:
-            output = nn.functional.conv2d(x, self.wavelet_bank, padding="same")
-            return torch.transpose(output, 1, 2)
+        logcwt = torch.log(torch.abs(cwtcfs[:, :, self.padvalue : self.padvalue + x.shape[-1]]))
+        return logcwt

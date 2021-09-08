@@ -32,12 +32,20 @@ class CustomModel_v1(nn.Module):
         fmax=1024,
         hop_length=32,
         bins_per_octave=8,
+        filter_scale=1,
         img_h=256,
         img_w=256,
     ):
         super().__init__()
         self.model = timm.create_model(encoder, pretrained=pretrained, in_chans=3, num_classes=1)
-        self.cqt = CQT1992v2(sr=sr, hop_length=hop_length, fmin=fmin, fmax=fmax, bins_per_octave=bins_per_octave)
+        self.cqt = CQT1992v2(
+            sr=sr,
+            hop_length=hop_length,
+            fmin=fmin,
+            fmax=fmax,
+            bins_per_octave=bins_per_octave,
+            filter_scale=filter_scale,
+        )
         self.h, self.w = img_h, img_w
 
         self.scaler = None

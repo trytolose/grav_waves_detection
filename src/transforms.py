@@ -34,7 +34,7 @@ def apply_win(x):
     return xr
 
 
-def minmax_transform(waves, params):
+def minmax_transform(waves):
     waves = min_max_scale(waves)
     return waves
 
@@ -51,12 +51,6 @@ def stack_minmax_transform(waves, params):
     return waves
 
 
-def single_lab_transform(waves, params):
-    waves = waves[params.CH]
-    waves = min_max_scale(waves)
-    return waves
-
-
 def minmax_turkey_transform(waves, params):
     waves = min_max_scale(waves)
     waves = apply_win(waves)
@@ -68,17 +62,23 @@ def minmax_bandpass_transform(waves, lf=30, hf=400):
     waves = apply_bandpass(waves, lf=lf, hf=hf)
     return waves
 
+
 def bandpass_transform(waves, lf=30, hf=400):
     # waves = min_max_scale(waves)
     waves = apply_bandpass(waves, lf=lf, hf=hf)
     return waves
 
 
+def turkey_bandpass_transform(waves, lf=30, hf=400):
+    waves = apply_win(waves)
+    waves = apply_bandpass(waves, lf=lf, hf=hf)
+    return waves
 
-def minmax_turkey_bandpass_transform(waves, params):
+
+def minmax_turkey_bandpass_transform(waves, lf=30, hf=400):
     waves = min_max_scale(waves)
     waves = apply_win(waves)
-    waves = apply_bandpass(waves, **params)
+    waves = apply_bandpass(waves, lf=lf, hf=hf)
     return waves
 
 
@@ -101,24 +101,23 @@ class Scaler:
             self.max_val = torch.tensor(self.max_val).cuda()
 
             if self.channels == 1:
-                self.ds_min = torch.tensor([stats['min']]).cuda()
-                self.ds_max = torch.tensor([stats['max']]).cuda()
+                self.ds_min = torch.tensor([stats["min"]]).cuda()
+                self.ds_max = torch.tensor([stats["max"]]).cuda()
             elif self.channels == 3:
-                self.ds_min = torch.tensor(stats['min_3']).cuda().reshape(1, 3, 1, 1)
-                self.ds_max = torch.tensor(stats['max_3']).cuda().reshape(1, 3, 1, 1)
+                self.ds_min = torch.tensor(stats["min_3"]).cuda().reshape(1, 3, 1, 1)
+                self.ds_max = torch.tensor(stats["max_3"]).cuda().reshape(1, 3, 1, 1)
             self.scaler_fn = self.minmax_scaler
         elif self.mode == "standart":
             if self.channels == 1:
-                self.ds_mean = torch.tensor([stats['mean']]).cuda()
-                self.ds_std = torch.tensor([stats['std']]).cuda()
+                self.ds_mean = torch.tensor([stats["mean"]]).cuda()
+                self.ds_std = torch.tensor([stats["std"]]).cuda()
             elif self.channels == 3:
-                self.ds_mean = torch.tensor(stats['mean_3']).cuda().reshape(1, 3, 1, 1)
-                self.ds_std = torch.tensor(stats['std_3']).cuda().reshape(1, 3, 1, 1)
+                self.ds_mean = torch.tensor(stats["mean_3"]).cuda().reshape(1, 3, 1, 1)
+                self.ds_std = torch.tensor(stats["std_3"]).cuda().reshape(1, 3, 1, 1)
 
             self.scaler_fn = self.standart_scaler
         else:
             self.scaler_fn = self.get_wave
-    
 
     def get_wave(self, x: torch.Tensor) -> torch.Tensor:
         return x
