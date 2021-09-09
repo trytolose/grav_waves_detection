@@ -1,0 +1,39 @@
+EXP_NAME: "b7_3q_bs20_fp16"
+FOLD: 0
+DEVICE: 0
+BS: 22
+FP16: True
+EPOCH:  10
+MODEL:
+  NAME: "CustomModel_v3"
+  CFG:
+    encoder: "tf_efficientnet_b7_ns"
+    img_w: 256
+    img_h: 256
+    scale_cqt: True
+    cqts_params: 
+          - sr: 2048
+            fmin: 20 
+            fmax: 1024
+            hop_length: 32
+            bins_per_octave: 8
+
+          - sr: 2048
+            fmin: 20 
+            fmax: 1024
+            hop_length: 16
+            bins_per_octave: 4
+
+          - sr: 2048
+            fmin: 20 
+            fmax: 1024
+            hop_length: 128
+            bins_per_octave: 24
+
+TRANSFORM: 
+  NAME: "src.transforms.minmax_turkey_bandpass_transform"
+
+SCHEDULER:
+  NAME: "torch.optim.lr_scheduler.CosineAnnealingLR"
+  CFG:
+    T_max: 10

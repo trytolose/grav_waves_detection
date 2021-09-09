@@ -1,8 +1,9 @@
-EXP_NAME: "004_effnetb0_bandpass_fp32_cos"
+EXP_NAME: "001_effnetb0_focal_loss"
 FOLD: 0
+DEVICE: 1
 BS: 64
 FP16: False
-EPOCH:  10
+EPOCH:  7
 MODEL:
   NAME: "CustomModel_v1"
   CFG:
@@ -14,8 +15,13 @@ MODEL:
     fmax: 1024
     hop_length: 32
     bins_per_octave: 8
+
+LOSS:
+  NAME: "src.losses.BinaryFocalLoss"
+  CFG: {alpha: 1, gamma: 1}
+
 TRANSFORM: 
-  NAME: "src.transforms.minmax_bandpass_transform"
+  NAME: "src.transforms.minmax_turkey_bandpass_transform"
 
 SCHEDULER:
   NAME: "torch.optim.lr_scheduler.CosineAnnealingLR"

@@ -1,5 +1,6 @@
 input
 *.pt
+*.csv
 submission.csv
 .ipynb_checkpoints
 outputs
@@ -9,3 +10,5 @@ src/__pycache__
 weights
 __pycache__
 logs
+/eda_notebooks
+/multirun

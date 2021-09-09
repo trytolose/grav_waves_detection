@@ -21,21 +21,27 @@ from src.models import get_model
 from src.utils.checkpoint import ModelCheckpoint
 from src.utils.utils import get_lr
 
-INPUT_PATH = Path("/home/trytolose/rinat/kaggle/grav_waves_detection/input")
+from src.losses import WeightedFocalLoss
 
+INPUT_PATH = Path("/home/clover_rtx/ds_users/bulat/kaggle")
 
 def get_loaders(cfg):
+    
     df = pd.read_csv(INPUT_PATH / "training_labels.csv")
-
     files = list((INPUT_PATH / "train").rglob("*.npy"))
     FILE_PATH_DICT = {x.stem: str(x) for x in files}
     df["path"] = df["id"].apply(lambda x: FILE_PATH_DICT[x])
 
-    skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=69)
+    # train_test splits
+    n_splits = cfg.SPLITS.n_splits
+    random_state = cfg.SPLITS.random_state
+    print('n_splits', n_splits, 'random_state', random_state)
+    skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=random_state)
     df["fold"] = -1
     for f, (train_ids, val_ids) in enumerate(skf.split(df.index, y=df["target"])):
         df.loc[val_ids, "fold"] = f
 
+    # datasets
     transform_f = partial(locate(cfg.TRANSFORM.NAME), params=cfg.TRANSFORM.CFG)
 
     train_ds = TrainDataset(
@@ -70,6 +76,7 @@ def train(cfg):
     model.cuda()
 
     loss_cfg_dict = dict(cfg.LOSS.CFG)
+    #print('loss_cfg_dict', loss_cfg_dict)
     if "pos_weight" in loss_cfg_dict:
         loss_cfg_dict["pos_weight"] = torch.tensor(loss_cfg_dict["pos_weight"]).cuda()
 
@@ -153,9 +160,13 @@ def train(cfg):
 @hydra.main(config_path="./configs", config_name="default")
 def main(cfg: DictConfig):
 
+    torch.cuda.set_device(cfg.DEVICE) 
     print(OmegaConf.to_yaml(cfg))
     train(cfg)
 
+
+import warnings
+warnings.filterwarnings("ignore")
 
 if __name__ == "__main__":
 

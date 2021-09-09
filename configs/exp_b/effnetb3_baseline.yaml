@@ -1,12 +1,13 @@
-EXP_NAME: "004_effnetb0_bandpass_fp32_cos"
+EXP_NAME: "001_effnetb3_bandpass_fp32_cos_bs32_min_max"
 FOLD: 0
-BS: 64
+DEVICE: 0
+BS: 32
 FP16: False
-EPOCH:  10
+EPOCH:  7
 MODEL:
   NAME: "CustomModel_v1"
   CFG:
-    encoder: "efficientnet_b0"
+    encoder: "efficientnet_b3"
     img_w: 256
     img_h: 256
     sr: 2048
@@ -14,8 +15,10 @@ MODEL:
     fmax: 1024
     hop_length: 32
     bins_per_octave: 8
+    scale_cqt: True
+
 TRANSFORM: 
-  NAME: "src.transforms.minmax_bandpass_transform"
+  NAME: "src.transforms.minmax_turkey_bandpass_transform"
 
 SCHEDULER:
   NAME: "torch.optim.lr_scheduler.CosineAnnealingLR"

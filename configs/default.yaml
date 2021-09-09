@@ -5,6 +5,10 @@ hydra:
 
 DEBUG: False
 EXP_NAME: "test"
+SPLITS:
+  random_state: 69
+  n_splits: 5
+
 FOLD: 0
 STEPS_PER_EPOCH: 2000
 BS: 128
@@ -24,8 +28,8 @@ LOSS:
 MODEL:
   NAME: "src.model.CustomModel_v1"
   CFG: {}
-  # ENCODER: "efficientnet_b0"
-  # IMG_SIZE: [256, 256]
+  #  ENCODER: "efficientnet_b0"
+  #  IMG_SIZE: [256, 256]
 
 OPTIMIZER:
   NAME: "torch.optim.Adam"
