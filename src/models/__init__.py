@@ -3,11 +3,14 @@ from src.models.CQT import CustomModel_v0
 from src.models.CQT import CustomModel_v1
 from src.models.CQT import CustomModel_v2
 from src.models.CQT import CustomModel_v3
+from src.models.CQT import CustomModel_v5
 from src.models.CWT import CustomModel_CWT
 
 def get_model(cfg):
     if cfg.MODEL.NAME == "CustomModel_CWT":
         return CustomModel_CWT(cfg)
+    if cfg.MODEL.NAME == "CustomModel_v5":
+        return CustomModel_v5(**cfg.MODEL.CFG)
     if cfg.MODEL.NAME == "CustomModel_v3":
         return CustomModel_v3(**cfg.MODEL.CFG)
     if cfg.MODEL.NAME == "CustomModel_v2":

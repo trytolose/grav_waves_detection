@@ -55,7 +55,7 @@ def get_loaders(cfg):
         mode="val",
         transform=transform_f,
     )
-
+    print(df[df["fold"] != cfg.FOLD].head())
     train_loader = DataLoader(train_ds, shuffle=True, num_workers=cfg.NUM_WORKERS, batch_size=cfg.BS, pin_memory=False)
     val_loader = DataLoader(val_ds, shuffle=False, num_workers=cfg.NUM_WORKERS, batch_size=cfg.BS, pin_memory=False)
     return train_loader, val_loader

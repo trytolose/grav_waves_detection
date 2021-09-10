@@ -1,13 +1,13 @@
-EXP_NAME: "b7_3q_bs20_fp16"
+EXP_NAME: "b0_5q_bs32_fp32"
 FOLD: 0
-DEVICE: 0
-BS: 22
-FP16: True
+DEVICE: 1
+BS: 32
+FP16: False
 EPOCH:  10
 MODEL:
-  NAME: "CustomModel_v3"
+  NAME: "CustomModel_v5"
   CFG:
-    encoder: "tf_efficientnet_b7_ns"
+    encoder: "efficientnet_b0"
     img_w: 256
     img_h: 256
     scale_cqt: False
@@ -21,14 +21,26 @@ MODEL:
           - sr: 2048
             fmin: 20 
             fmax: 1024
-            hop_length: 16
-            bins_per_octave: 4
+            hop_length: 128
+            bins_per_octave: 24
 
           - sr: 2048
             fmin: 20 
             fmax: 1024
             hop_length: 128
+            bins_per_octave: 4
+
+          - sr: 2048
+            fmin: 20 
+            fmax: 1024
+            hop_length: 16
             bins_per_octave: 24
+
+          - sr: 2048
+            fmin: 20 
+            fmax: 1024
+            hop_length: 16
+            bins_per_octave: 4
 
 TRANSFORM: 
   NAME: "src.transforms.minmax_turkey_bandpass_transform"

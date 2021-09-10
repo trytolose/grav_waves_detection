@@ -3,14 +3,14 @@ FOLD: 0
 DEVICE: 0
 BS: 22
 FP16: False
-EPOCH:  10
+EPOCH:  8
 MODEL:
   NAME: "CustomModel_v3"
   CFG:
     encoder: "tf_efficientnet_b5_ns"
     img_w: 256
     img_h: 256
-    scale_cqt: True
+    scale_cqt: False
     cqts_params: 
           - sr: 2048
             fmin: 20 
