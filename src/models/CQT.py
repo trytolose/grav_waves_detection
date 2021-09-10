@@ -49,12 +49,24 @@ class CustomModel_v1(nn.Module):
         self.h, self.w = img_h, img_w
 
         self.scaler = None
+        self.max_val = (
+            torch.tensor(
+                [
+                    1.4916698,
+                    1.3290482,
+                    4.407391,
+                ]
+            )
+            .cuda()
+            .view(1, 3, 1, 1)
+        )
 
     def set_scaler(self, scaler):
         self.scaler = scaler
 
     def forward(self, x):
         x = self.spec(x)
+        x /= self.max_val
         if self.scaler is not None:
             x = self.scaler(x)
         output = self.model(x)

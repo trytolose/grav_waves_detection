@@ -1,0 +1,33 @@
+EXP_NAME: "00_b0_128.yaml"
+FOLD: 1
+BS: 64
+FP16: False
+EPOCH:  7
+TRAIN_FOLD: -1
+
+MODEL:
+  NAME: "CustomModel_v1"
+  CFG:
+    encoder: "efficientnet_b0"
+    img_w: 128
+    img_h: 128
+    sr: 2048
+    fmin: 20 
+    fmax: 1024
+    hop_length: 32
+    bins_per_octave: 8
+    filter_scale: 1
+TRANSFORM: 
+  NAME: "src.transforms.minmax_turkey_bandpass_transform"
+  CFG:
+    lf: 30
+    hf: 400
+
+SCHEDULER:
+  NAME: "torch.optim.lr_scheduler.CosineAnnealingLR"
+  CFG:
+    T_max: 10
+
+N_SAVED: 1
+
+TENSORBOARD_DIR: "/home/trytolose/rinat/kaggle/grav_waves_detection/logs/tensorboard_grid"

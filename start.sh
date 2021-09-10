@@ -135,5 +135,22 @@
 
 # python main.py +exp_grid=baseline_b3_384 FOLD=0 
 # python main.py +exp_grid=b0_512_v1 DEBUG=True
-python main.py +exp_grid=baseline_v2_cwt
-python main.py +exp_grid=baseline_v2_cwt_bandpass
+# python main.py +exp_grid=baseline_v2_cwt
+# python main.py +exp_grid=baseline_v2_cwt_bandpass
+
+
+
+# python main.py +exp_best=00_b0_128
+# python main.py +exp_best=00_b0_128 EXP_NAME=00_b0_128_v2 MODEL.CFG.fmin=20 MODEL.CFG.fmax=1024
+# python main.py +exp_best=00_b0_128 EXP_NAME=00_b0_128_v3 MODEL.CFG.fmin=20 MODEL.CFG.fmax=1024 MODEL.USE_SCALER=True
+# python main.py +exp_best=00_b0_128 EXP_NAME=00_b0_128_v4 MODEL.CFG.fmin=20 MODEL.CFG.fmax=1024 MODEL.USE_SCALER=True TRANSFORM.NAME=src.transforms.minmax_bandpass_transform
+# python main.py +exp_best=00_b0_128 EXP_NAME=00_b0_128_v5 MODEL.CFG.fmin=20 MODEL.CFG.fmax=1024 MODEL.USE_SCALER=True TRANSFORM.NAME=src.transforms.bandpass_transform
+# python main.py +exp_best=00_b0_128 EXP_NAME=00_b0_128_v6 MODEL.USE_SCALER=True TRANSFORM.NAME=src.transforms.bandpass_transform
+
+
+# python main.py +exp_grid=baseline_v2_cwt_bandpass_scaler
+# python main.py +exp_v2=033_wavenet_bandpass_fp16_cos_10_best_clip FOLD=0 BS=64 EXP_NAME=wavenet_bs64_clip
+
+# python main.py +exp_best=00_b0_128_best EXP_NAME=00_b0_128_best BS=32 FOLD=1
+
+python main.py +exp_best=01_b3_512 DEBUG=True

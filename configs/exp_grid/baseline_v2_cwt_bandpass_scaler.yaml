@@ -1,0 +1,39 @@
+EXP_NAME: "baseline_v2_cwt_bandpass_scaler"
+FOLD: 0
+BS: 64
+FP16: False
+EPOCH:  7
+TRAIN_FOLD: -1
+
+MODEL:
+  NAME: "CustomModel_CWT"
+  USE_SCALER: True
+  CFG:
+    encoder: "efficientnet_b0"
+    img_w: 256
+    img_h: 256
+    nv: 16  # number of voices
+    sr: 2048  # sample rate (Hz)
+    flow: 30  # lowest frequency of interest (Hz)
+    fhigh: 400 
+    
+SCALER:
+  NAME: "src.transforms.Scaler"
+  MODE: "standart"
+  CHANNELS: 1
+  
+TRANSFORM: 
+  NAME: "src.transforms.minmax_bandpass_transform"
+  CFG:
+    lf: 30
+    hf: 400
+
+SCHEDULER:
+  NAME: "torch.optim.lr_scheduler.CosineAnnealingLR"
+  CFG:
+    T_max: 5
+    eta_min: 0.00001
+
+N_SAVED: 1
+
+TENSORBOARD_DIR: "/home/trytolose/rinat/kaggle/grav_waves_detection/logs/tensorboard_grid"

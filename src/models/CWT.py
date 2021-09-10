@@ -109,7 +109,6 @@ class CWT_TF(nn.Module):
             )
 
         # # parameters we want to use during call():
-        # self.wft = tf.Variable(_wft, trainable=self.trainable) # yes, the wavelets can be trainable if desired
         self.wft = torch.tensor(_wft).cuda()
         self.padvalue = padvalue
         self.num_scales = scales.shape[-1]
@@ -117,17 +116,16 @@ class CWT_TF(nn.Module):
 
     def forward(self, x):
 
-        bs = x.shape[0]
+        bs, wave_len = x.shape
         x_left_pad = torch.flip(x[:, 0 : self.padvalue], dims=[1])
         x_right_pad = torch.flip(x[:, -self.padvalue :], dims=[1])
-        x_padded = torch.cat([x_left_pad, x, x_right_pad], dim=1)
-        x_padded.shape
+        x = torch.cat([x_left_pad, x, x_right_pad], dim=1)
 
-        x_padded = x_padded.type(torch.complex128)
-        f = torch.fft.fft(x_padded, dim=1)
+        x = x.type(torch.complex128)
+        f = torch.fft.fft(x, dim=1)
 
         kron_prod = self.kron(self.cron_ones_tensor.unsqueeze(0).repeat(bs, 1, 1), f.unsqueeze(1))
         cwtcfs = torch.fft.ifft(kron_prod * self.wft.unsqueeze(0).repeat(bs, 1, 1), dim=2)
 
-        logcwt = torch.log(torch.abs(cwtcfs[:, :, self.padvalue : self.padvalue + x.shape[-1]]))
+        logcwt = torch.log(torch.abs(cwtcfs[:, :, self.padvalue : self.padvalue + wave_len]))
         return logcwt

@@ -31,10 +31,10 @@ def get_dataset_statistics(train_loader, val_loader, model):
     result["max"] = maxes.max()
     result["min"] = mins.min()
     result["mean"] = means.mean()
-    result["std"] = stds.std()
-    
+    result["std"] = stds.mean()
+
     result["max_3"] = maxes.max(axis=0)
     result["min_3"] = mins.min(axis=0)
     result["mean_3"] = means.mean(axis=0)
-    result["std_3"] = stds.std(axis=0)
+    result["std_3"] = stds.mean(axis=0)
     return result

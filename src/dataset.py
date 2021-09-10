@@ -154,51 +154,20 @@ def get_loaders(cfg):
     val_loader = DataLoader(val_ds, shuffle=False, num_workers=cfg.NUM_WORKERS, batch_size=cfg.BS, pin_memory=False)
     return train_loader, val_loader
 
+def get_test_loader(cfg):
 
-def get_disk_loader(cfg):
-    df = pd.read_csv(INPUT_PATH / "training_labels.csv")
+    df = pd.read_csv(INPUT_PATH / "sample_submission.csv")
 
-    files = list((INPUT_PATH / "train").rglob("*.npy"))
+    files = list((INPUT_PATH / "test").rglob("*.npy"))
     FILE_PATH_DICT = {x.stem: str(x) for x in files}
     df["path"] = df["id"].apply(lambda x: FILE_PATH_DICT[x])
 
-    skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=69)
-    df["fold"] = -1
-    for f, (train_ids, val_ids) in enumerate(skf.split(df.index, y=df["target"])):
-        df.loc[val_ids, "fold"] = f
+    transform_f = partial(locate(cfg.TRANSFORM.NAME), **cfg.TRANSFORM.CFG)
 
-    train_ds = TrainFromDiskDataset(
-        df[df["fold"] != cfg.FOLD].reset_index(drop=True), path="input/img_fp16_256", mode="train"
-    )
-    val_ds = TrainFromDiskDataset(
-        df[df["fold"] == cfg.FOLD].reset_index(drop=True), path="input/img_fp16_256", mode="val"
-    )
-
-    train_loader = DataLoader(train_ds, shuffle=True, num_workers=20, batch_size=cfg.BS, pin_memory=False)
-    val_loader = DataLoader(val_ds, shuffle=False, num_workers=20, batch_size=cfg.BS, pin_memory=False)
-    return train_loader, val_loader
-
-
-def get_in_memory_loaders(cfg):
-
-    folds = [0, 1, 2, 3, 4]
-    folds.remove(cfg.FOLD)
-
-    transform_f = partial(locate(cfg.TRANSFORM.NAME), params=cfg.TRANSFORM.CFG)
-
-    train_ds = InMemoryDataset(
-        path="input/fp16/train",
-        folds=folds,
-        mode="train",
+    test_ds = TrainDataset(
+        df,
+        mode="test",
         transform=transform_f,
     )
-    val_ds = InMemoryDataset(
-        path="input/fp16/train",
-        folds=[cfg.FOLD],
-        mode="val",
-        transform=transform_f,
-    )
-
-    train_loader = DataLoader(train_ds, shuffle=True, num_workers=cfg.NUM_WORKERS, batch_size=cfg.BS, pin_memory=False)
-    val_loader = DataLoader(val_ds, shuffle=False, num_workers=cfg.NUM_WORKERS, batch_size=cfg.BS, pin_memory=False)
-    return train_loader, val_loader
+    test_loader = DataLoader(test_ds, shuffle=False, num_workers=cfg.NUM_WORKERS, batch_size=cfg.BS, pin_memory=False)
+    return test_loader

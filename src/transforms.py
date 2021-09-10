@@ -30,7 +30,7 @@ def min_max_scale(waves, min_val=-1, max_val=1):
 
 
 def apply_win(x):
-    xr = x * signal.tukey(4096, 0.1)
+    xr = x * signal.tukey(4096, 0.2)
     return xr
 
 
@@ -116,6 +116,7 @@ class Scaler:
                 self.ds_std = torch.tensor(stats["std_3"]).cuda().reshape(1, 3, 1, 1)
 
             self.scaler_fn = self.standart_scaler
+
         else:
             self.scaler_fn = self.get_wave
 
@@ -129,6 +130,9 @@ class Scaler:
 
     def standart_scaler(self, x: torch.Tensor) -> torch.Tensor:
         return (x - self.ds_mean) / self.ds_std
+
+    def max_scaler(self, x):
+        x /= self.ds_max
 
     def __call__(self, X: torch.Tensor) -> torch.Tensor:
         return self.scaler_fn(X)

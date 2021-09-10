@@ -13,7 +13,7 @@ from torch.utils.tensorboard import SummaryWriter
 from torch.nn.utils import clip_grad_norm_
 from tqdm import tqdm
 
-from src.dataset import get_in_memory_loaders, get_disk_loader, get_loaders
+from src.dataset import get_loaders
 from src.models import get_model
 from src.utils.checkpoint import ModelCheckpoint
 from src.utils.utils import get_lr, get_gradient_norm
@@ -34,10 +34,8 @@ def train(cfg):
         Path(tensorboard_logs).mkdir(parents=True, exist_ok=True)
         tensorboard_writer = SummaryWriter(tensorboard_logs, flush_secs=30)
         checkpoints = ModelCheckpoint(dirname=checkpoints_path, n_saved=cfg.N_SAVED)
-    if cfg.MODEL.NAME == "timm":
-        train_loader, val_loader = get_disk_loader(cfg)
-    else:
-        train_loader, val_loader = get_loaders(cfg)
+    
+    train_loader, val_loader = get_loaders(cfg)
 
     # train_loader, val_loader = get_in_memory_loaders(cfg)
 
@@ -56,7 +54,8 @@ def train(cfg):
     best_score = 0
     iters = len(train_loader)
 
-    if cfg.MODEL.USE_SCALER is True and cfg.MODEL.NAME == "CustomModel_v1":
+    if cfg.MODEL.USE_SCALER is True and "CustomModel" in cfg.MODEL.NAME:
+        print("calc_statistics")
         stats = get_dataset_statistics(train_loader, val_loader, model)
         spec_scaler = locate(cfg.SCALER.NAME)(cfg.SCALER.MODE, cfg.SCALER.CHANNELS)
         spec_scaler.set_stats(stats)
@@ -88,8 +87,8 @@ def train(cfg):
                 pred = model(x)
                 loss = loss_fn(pred, y)
                 loss.backward()
-                if cfg.GRAD_CLIP != 0:
-                    clip_grad_norm_(model.parameters(), max_norm=cfg.GRAD_CLIP)
+                if e >= cfg.GRAD_CLIP.START_EPOCH:
+                    clip_grad_norm_(model.parameters(), max_norm=cfg.GRAD_CLIP.THR)
                 optimizer.step()
             # if i % 30 == 0:
             #     print(get_gradient_norm(model))
@@ -127,7 +126,7 @@ def train(cfg):
         final_score = metrics.roc_auc_score(val_true, val_pred)
         # grad_norm = get_gradient_norm(model)
         print(
-            f"Epoch: {e:03d}; train_loss: {train_loss:.05f} val_loss: {val_loss:.05f}; roc: {final_score:.5f}",
+            f"Epoch: {e:03d}; lr: {get_lr(optimizer):.10f}; train_loss: {train_loss:.05f} val_loss: {val_loss:.05f}; roc: {final_score:.5f}",
             end=" ",
         )
         if cfg.DEBUG is False:

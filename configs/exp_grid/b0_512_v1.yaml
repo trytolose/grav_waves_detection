@@ -1,4 +1,4 @@
-EXP_NAME: "b0_512_v1"
+EXP_NAME: "b0_512_v2"
 FOLD: 0
 BS: 32
 FP16: False
