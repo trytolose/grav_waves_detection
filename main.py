@@ -27,9 +27,7 @@ torch.multiprocessing.set_sharing_strategy("file_system")
 
 def train(cfg):
     time_str = time.strftime("%Y-%m-%d-%H-%M-%S")
-    checkpoints_path = (
-        f"/home/trytolose/rinat/kaggle/grav_waves_detection/weights/{cfg.MODEL.NAME}/{cfg.EXP_NAME}/fold_{cfg.FOLD}"
-    )
+    checkpoints_path = f"{cfg.CH_PATH}/{cfg.MODEL.NAME}/{cfg.EXP_NAME}/fold_{cfg.FOLD}"
     tensorboard_logs = f"{cfg.TENSORBOARD_DIR}/{cfg.EXP_NAME}_{time_str}_f{cfg.FOLD}"
     if cfg.DEBUG is False:
         Path(tensorboard_logs).mkdir(parents=True, exist_ok=True)

@@ -50,4 +50,6 @@ SCHEDULER:
   CFG: {}
 
 N_SAVED: 5
+CH_PATH: "/home/trytolose/rinat/kaggle/grav_waves_detection/weights"
 TENSORBOARD_DIR: "/home/trytolose/rinat/kaggle/grav_waves_detection/logs/tensorboard"
+INPUT_PATH: "/home/trytolose/rinat/kaggle/grav_waves_detection/input"

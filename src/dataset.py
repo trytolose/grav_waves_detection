@@ -96,10 +96,8 @@ class TrainFromDiskDataset(Dataset):
             return img
 
 
-INPUT_PATH = Path("/home/trytolose/rinat/kaggle/grav_waves_detection/input")
-
-
 def get_loaders(cfg):
+    INPUT_PATH = Path(cfg.INPUT_PATH)
     df = pd.read_csv(INPUT_PATH / "training_labels.csv")
     # df = pd.read_csv(INPUT_PATH / "train_oof_overfit.csv")
     files = list((INPUT_PATH / "train").rglob("*.npy"))
