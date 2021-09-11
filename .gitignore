@@ -9,3 +9,5 @@ src/__pycache__
 weights
 __pycache__
 logs
+multirun
+*.csv

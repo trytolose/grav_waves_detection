@@ -1,0 +1,24 @@
+EXP_NAME: "v5"
+FOLD: 0
+BS: 180
+FP16: False
+EPOCH:  12
+TRAIN_FOLD: 1
+MODEL:
+  NAME: "Wavenet_v3"
+TRANSFORM: 
+  NAME: "src.transforms.minmax_bandpass_transform"
+
+
+SCHEDULER:
+  NAME: "torch.optim.lr_scheduler.CosineAnnealingLR"
+  CFG:
+    T_max: 10 
+  
+OPTIMIZER:
+  NAME: "torch.optim.Adam"
+  CFG:
+    lr: 0.001
+
+N_SAVED: 5
+TENSORBOARD_DIR: "/home/trytolose/rinat/kaggle/grav_waves_detection/logs/tensorboard_wavenet"

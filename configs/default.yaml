@@ -3,6 +3,7 @@ hydra:
     dir: "."
   output_subdir: null
 
+GPU: 0
 DEBUG: False
 EXP_NAME: "test"
 FOLD: 0
@@ -30,6 +31,7 @@ MODEL:
   NAME: "src.model.CustomModel_v1"
   USE_SCALER: False
   CFG: {}
+  CHECKPOINT: ""
   # ENCODER: "efficientnet_b0"
   # IMG_SIZE: [256, 256]
 

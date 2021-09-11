@@ -100,8 +100,8 @@ INPUT_PATH = Path("/home/trytolose/rinat/kaggle/grav_waves_detection/input")
 
 
 def get_loaders(cfg):
-    # df = pd.read_csv(INPUT_PATH / "training_labels.csv")
-    df = pd.read_csv(INPUT_PATH / "train_oof_overfit.csv")
+    df = pd.read_csv(INPUT_PATH / "training_labels.csv")
+    # df = pd.read_csv(INPUT_PATH / "train_oof_overfit.csv")
     files = list((INPUT_PATH / "train").rglob("*.npy"))
     FILE_PATH_DICT = {x.stem: str(x) for x in files}
     df["path"] = df["id"].apply(lambda x: FILE_PATH_DICT[x])
@@ -120,18 +120,6 @@ def get_loaders(cfg):
 
     df_val = df[df["fold"] == cfg.FOLD].reset_index(drop=True)
 
-    fp_fn_mask = ((df_train["target"] == 0) & (df_train["pred"] > 0.5)) | (
-        (df_train["target"] == 1) & (df_train["pred"] < 0.5)
-    )
-    tn_mask = (df_train["target"] == 0) & (df_train["pred"] < 0.5)
-    tp_mask = (df_train["target"] == 1) & (df_train["pred"] > 0.5)
-
-    df_train["weight"] = 0
-    df_train.loc[fp_fn_mask, "weight"] = (fp_fn_mask.sum() / len(df_train)) * 0.4
-    df_train.loc[tn_mask, "weight"] = (tn_mask.sum() / len(df_train)) * 0.4
-    df_train.loc[tp_mask, "weight"] = (tp_mask.sum() / len(df_train)) * 0.2
-
-    sampler = WeightedRandomSampler(df_train["weight"].values, len(df_train))
     train_ds = TrainDataset(
         df_train,
         steps_per_epoch=cfg.STEPS_PER_EPOCH,
@@ -153,6 +141,7 @@ def get_loaders(cfg):
     )
     val_loader = DataLoader(val_ds, shuffle=False, num_workers=cfg.NUM_WORKERS, batch_size=cfg.BS, pin_memory=False)
     return train_loader, val_loader
+
 
 def get_test_loader(cfg):
 

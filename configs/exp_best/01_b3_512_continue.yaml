@@ -2,8 +2,13 @@ EXP_NAME: "01_b3_512_v2_noclip"
 FOLD: 1
 BS: 32
 FP16: True
-EPOCH:  7
+EPOCH:  3
 TRAIN_FOLD: -1
+
+OPTIMIZER:
+  NAME: "torch.optim.Adam"
+  CFG:
+    lr: 0.0006
 
 GRAD_CLIP: 
   START_EPOCH: 1000
@@ -11,6 +16,7 @@ GRAD_CLIP:
 
 MODEL:
   NAME: "CustomModel_v1"
+  CHECKPOINT: ""
   CFG:
     encoder: "efficientnet_b3"
     img_w: 512

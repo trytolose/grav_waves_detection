@@ -1,0 +1,27 @@
+EXP_NAME: "base_warmup.yaml"
+FOLD: 0
+BS: 180
+FP16: False
+EPOCH:  12
+TRAIN_FOLD: 1
+MODEL:
+  NAME: "Wavenet"
+TRANSFORM: 
+  NAME: "src.transforms.minmax_bandpass_transform"
+
+
+SCHEDULER:
+  NAME: "timm.scheduler.CosineLRScheduler"
+  CFG:
+    t_initial: 10
+    t_mul: 3
+    warmup_t: 1
+    cycle_limit: 1
+  
+OPTIMIZER:
+  NAME: "torch.optim.Adam"
+  CFG:
+    lr: 0.001
+
+N_SAVED: 5
+TENSORBOARD_DIR: "/home/trytolose/rinat/kaggle/grav_waves_detection/logs/tensorboard_wavenet"

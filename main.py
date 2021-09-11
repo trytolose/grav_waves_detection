@@ -1,4 +1,6 @@
+import os
 import time
+import warnings
 from pathlib import Path
 from pydoc import locate
 
@@ -9,16 +11,15 @@ import torch
 from omegaconf import DictConfig, OmegaConf
 from sklearn import metrics
 from torch.cuda.amp import GradScaler, autocast
-from torch.utils.tensorboard import SummaryWriter
 from torch.nn.utils import clip_grad_norm_
+from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
 from src.dataset import get_loaders
+from src.loops import get_dataset_statistics
 from src.models import get_model
 from src.utils.checkpoint import ModelCheckpoint
-from src.utils.utils import get_lr, get_gradient_norm
-from src.loops import get_dataset_statistics
-import warnings
+from src.utils.utils import get_gradient_norm, get_lr
 
 warnings.filterwarnings("ignore")
 torch.multiprocessing.set_sharing_strategy("file_system")
@@ -34,13 +35,16 @@ def train(cfg):
         Path(tensorboard_logs).mkdir(parents=True, exist_ok=True)
         tensorboard_writer = SummaryWriter(tensorboard_logs, flush_secs=30)
         checkpoints = ModelCheckpoint(dirname=checkpoints_path, n_saved=cfg.N_SAVED)
-    
+
     train_loader, val_loader = get_loaders(cfg)
 
     # train_loader, val_loader = get_in_memory_loaders(cfg)
 
     model = get_model(cfg)
     model.cuda()
+
+    if cfg.MODEL.CHECKPOINT != "":
+        model.load_state_dict(torch.load(cfg.MODEL.CHECKPOINT))
 
     loss_cfg_dict = dict(cfg.LOSS.CFG)
     if "pos_weight" in loss_cfg_dict:
@@ -145,7 +149,7 @@ def train(cfg):
 
 @hydra.main(config_path="./configs", config_name="default")
 def main(cfg: DictConfig):
-
+    os.environ["CUDA_VISIBLE_FEVICES"] = str(cfg.GPU)
     print(OmegaConf.to_yaml(cfg))
     train(cfg)
 

@@ -153,4 +153,14 @@
 
 # python main.py +exp_best=00_b0_128_best EXP_NAME=00_b0_128_best BS=32 FOLD=1
 
-python main.py +exp_best=01_b3_512 DEBUG=True
+# python main.py +exp_best=01_b3_512 DEBUG=True
+
+# python main.py +wavenets=001
+# python main.py +wavenets=000_cnn_baseline128
+# python main.py +wavenets=002
+# python main.py +wavenets=003
+# python main.py +wavenets=004
+
+
+# python main.py +exp_multi_cqt=00_b0_128_5cqt # DEBUG=True
+python main.py -m +exp_multi_cqt=01_b0_512_5cqt FOLD='range(0, 5)'
