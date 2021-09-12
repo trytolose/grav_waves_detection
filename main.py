@@ -72,7 +72,7 @@ def train(cfg):
         model.train()
 
         for i, (x, y) in tqdm(enumerate(train_loader), total=iters, ncols=70, leave=False):
-
+            model.first_ep = (e == 0)
             optimizer.zero_grad()
             x = x.cuda().float()
             y = y.cuda().float().unsqueeze(1)
@@ -103,7 +103,9 @@ def train(cfg):
         val_true = []
         val_pred = []
         model.eval()
-
+        Path(checkpoints_path).mkdir(parents=True, exist_ok=True)
+        torch.save(model.state_dict(), Path(checkpoints_path) / "last_epoch.pth")
+        model.eval()
         with torch.no_grad():
             for i, (x, y) in tqdm(enumerate(val_loader), ncols=50, leave=False, total=len(val_loader)):
                 x = x.cuda().float()

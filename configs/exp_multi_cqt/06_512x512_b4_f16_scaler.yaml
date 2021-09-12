@@ -1,0 +1,58 @@
+EXP_NAME: "05_256x512_b4_f32"
+FOLD: 0
+BS: 32
+FP16: True
+EPOCH:  7
+TRAIN_FOLD: -1
+
+MODEL:
+  NAME: "CustomModel_v2_Scaler"
+  CFG:
+    encoder: "efficientnet_b4"
+    img_w: 512
+    img_h: 512
+    cqt_params: 
+          - sr: 2048
+            fmin: 20 
+            fmax: 1024
+            hop_length: 32
+            bins_per_octave: 8
+
+          - sr: 2048
+            fmin: 20 
+            fmax: 1024
+            hop_length: 128
+            bins_per_octave: 24
+
+          - sr: 2048
+            fmin: 20 
+            fmax: 1024
+            hop_length: 128
+            bins_per_octave: 4
+
+          - sr: 2048
+            fmin: 20 
+            fmax: 1024
+            hop_length: 16
+            bins_per_octave: 24
+
+          - sr: 2048
+            fmin: 20 
+            fmax: 1024
+            hop_length: 16
+            bins_per_octave: 4
+
+TRANSFORM: 
+  NAME: "src.transforms.minmax_turkey_bandpass_transform"
+  CFG:
+    lf: 30
+    hf: 400
+
+SCHEDULER:
+  NAME: "torch.optim.lr_scheduler.CosineAnnealingLR"
+  CFG:
+    T_max: 9
+
+N_SAVED: 5
+
+TENSORBOARD_DIR: "/home/trytolose/rinat/kaggle/grav_waves_detection/logs/tensorboard_grid"

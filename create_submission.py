@@ -145,7 +145,7 @@ def main(cfg: DictConfig):
     # print(OmegaConf.to_yaml(cfg))
 
     # avg(model, cfg, 1)
-    inference(cfg, model, ["weights/CustomModel_v1/00_b0_128_best/fold_1/cp_epoch04_score0.87044.pth"])
+    inference(cfg, model)
 # 0.8712827783072145
 
 if __name__ == "__main__":
