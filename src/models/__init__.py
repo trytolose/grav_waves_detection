@@ -1,5 +1,5 @@
 from src.models.wavenet import Andrewnet_v3_true, Andrewnet_v4, Andrewnet_v5
-from src.models.CQT import CustomModel_v1, CustomModel_v2
+from src.models.CQT import CustomModel_v1, CustomModel_v2, CustomModel_v2_Scaler
 from src.models.CWT import CustomModel_CWT
 import timm
 from pydoc import locate
@@ -13,6 +13,10 @@ def get_model(cfg):
         return model
     if cfg.MODEL.NAME == "CustomModel_v2":
         return CustomModel_v2(**cfg.MODEL.CFG)
+
+    if cfg.MODEL.NAME == "CustomModel_v2_Scaler":
+        return CustomModel_v2_Scaler(**cfg.MODEL.CFG)
+
     if cfg.MODEL.NAME == "Wavenet":
         return Andrewnet_v3_true(**cfg.MODEL.CFG)
     if cfg.MODEL.NAME == "Wavenet_v2":

@@ -156,11 +156,23 @@
 # python main.py +exp_best=01_b3_512 DEBUG=True
 
 # python main.py +wavenets=001
-# python main.py +wavenets=000_cnn_baseline128
+# python main.py +wavenets=000_cnn_baseline128 BS=32
 # python main.py +wavenets=002
 # python main.py +wavenets=003
 # python main.py +wavenets=004
 
 
 # python main.py +exp_multi_cqt=00_b0_128_5cqt # DEBUG=True
-python main.py -m +exp_multi_cqt=01_b0_512_5cqt FOLD='range(0, 5)'
+# python main.py -m +exp_multi_cqt=01_b0_512_5cqt FOLD='range(0, 5)'
+# python main.py +exp_multi_cqt=01_b0_512_5cqt FOLD=2 MODEL.CHECKPOINT=weights/CustomModel_v2/00_b0_512_5cqt/fold_2/cp_epoch00_score0.87026.pth
+
+# python create_submission.py +exp_multi_cqt=01_b0_512_5cqt
+
+# python main.py +exp_multi_cqt=02_b4_512_5cqt FOLD=0 MODEL.CHECKPOINT=weights/CustomModel_v2/02_b4_512_5cqt/fold_0/cp_epoch00_score0.87082.pth #causes nan at val
+
+# python main.py +exp_multi_cqt=03_rexnet_512_5cqt.yaml FOLD=0 DEBUG=True
+python main.py +exp_multi_cqt=06_512x512_b4_f16_scaler
+python main.py +exp_multi_cqt=05_256x512_b4_f32 FOLD=0
+python main.py +exp_multi_cqt=05_256x512_b4_f32 FOLD=1
+python main.py +exp_multi_cqt=05_256x512_b4_f32 FOLD=2
+python main.py +exp_multi_cqt=05_256x512_b4_f32 FOLD=3
