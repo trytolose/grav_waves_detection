@@ -1,0 +1,79 @@
+EXP_NAME: "07_400x400_b2_wavegram_f32"
+FOLD: 4
+BS: 8
+FP16: False
+EPOCH:  7
+TRAIN_FOLD: -1
+GPU: 0
+DEBUG: False
+STEPS_PER_EPOCH: 2000
+NUM_WORKERS: 12
+
+GRAD_CLIP:
+  START_EPOCH: 1000
+  THR: 0.5
+
+MODEL:
+  NAME: "CustomModelWavegram"
+  USE_SCALER: False
+  CHECKPOINT: ""
+  CFG:
+    encoder: "efficientnet_b2"
+    img_w: 400
+    img_h: 400
+    cqt_params: 
+          - sr: 2048
+            fmin: 20 
+            fmax: 1024
+            hop_length: 32
+            bins_per_octave: 8
+
+          - sr: 2048
+            fmin: 20 
+            fmax: 1024
+            hop_length: 128
+            bins_per_octave: 24
+
+          - sr: 2048
+            fmin: 20 
+            fmax: 1024
+            hop_length: 128
+            bins_per_octave: 4
+
+          - sr: 2048
+            fmin: 20
+            fmax: 1024
+            hop_length: 16
+            bins_per_octave: 24
+
+          - sr: 2048
+            fmin: 20
+            fmax: 1024
+            hop_length: 16
+            bins_per_octave: 4
+
+TRANSFORM: 
+  NAME: "src.transforms.minmax_turkey_bandpass_transform"
+  CFG:
+    lf: 30
+    hf: 400
+
+OPTIMIZER:
+  NAME: "torch.optim.Adam"
+  CFG:
+    lr: 0.001
+
+SCHEDULER:
+  NAME: "torch.optim.lr_scheduler.CosineAnnealingLR"
+  CFG:
+    T_max: 9
+
+LOSS:
+  NAME: "torch.nn.BCEWithLogitsLoss"
+  CFG: {}
+
+N_SAVED: 5
+CH_PATH: "/mnt/disk01/codebase/av.golov/grav_wave/weights"
+TENSORBOARD_DIR: "/mnt/disk01/codebase/av.golov/grav_wave/logs/tensorboard"
+INPUT_PATH: "/disk02/data/grav_waves/input"
+INPUT_PATH2: "/mnt/disk01/codebase/av.golov/grav_wave"
