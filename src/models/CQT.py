@@ -158,3 +158,102 @@ class CustomModel_v2_Scaler(nn.Module):
         _, _, h, w = x.shape
         x = x.view(bs, 3, h, w)
         return x
+    
+    
+    
+def init_layer(layer):
+    nn.init.xavier_uniform_(layer.weight)
+
+    if hasattr(layer, "bias"):
+        if layer.bias is not None:
+            layer.bias.data.fill_(0.)
+
+
+def init_bn(bn):
+    bn.bias.data.fill_(0.)
+    bn.weight.data.fill_(1.0)
+
+
+class ConvPreWavBlock(nn.Module):
+    def __init__(self, in_channels, out_channels):
+        super(ConvPreWavBlock, self).__init__()
+
+        self.conv1 = nn.Conv1d(in_channels=in_channels,
+                               out_channels=out_channels,
+                               kernel_size=3, stride=1,
+                               padding=1, bias=False)
+
+        self.conv2 = nn.Conv1d(in_channels=out_channels,
+                               out_channels=out_channels,
+                               kernel_size=3, stride=1, dilation=2,
+                               padding=2, bias=False)
+
+        self.bn1 = nn.BatchNorm1d(out_channels)
+        self.bn2 = nn.BatchNorm1d(out_channels)
+
+        self.init_weight()
+
+    def init_weight(self):
+        init_layer(self.conv1)
+        init_layer(self.conv2)
+        init_bn(self.bn1)
+        init_bn(self.bn2)
+
+    def forward(self, input, pool_size):
+        x = input
+        x = F.relu_(self.bn1(self.conv1(x)))
+        x = F.relu_(self.bn2(self.conv2(x)))
+        x = F.max_pool1d(x, kernel_size=pool_size)
+
+        return x
+
+
+class CustomModelWavegram(nn.Module):
+    def __init__(
+            self,
+            cqt_params,
+            encoder="efficientnet_b0",
+            pretrained=True,
+            img_h=256,
+            img_w=256,
+    ):
+        super().__init__()
+        self.cqts = nn.ModuleList()
+        for param in cqt_params:
+            self.cqts.append(CQT1992v2(**param))
+        self.model = timm.create_model(encoder, pretrained=pretrained, in_chans=3 * len(cqt_params)+1, num_classes=1)
+        self.h, self.w = img_h, img_w
+        self.scaler = None
+
+        self.pre_conv0 = nn.Conv1d(in_channels=3, out_channels=64, kernel_size=11, stride=5, padding=5, bias=False)
+        self.pre_bn0 = nn.BatchNorm1d(64)
+        self.pre_block1 = ConvPreWavBlock(64, 64)
+        self.pre_block2 = ConvPreWavBlock(64, 128)
+        self.pre_block3 = ConvPreWavBlock(128, 128)
+        self.init_weight()
+
+    def init_weight(self):
+        init_layer(self.pre_conv0)
+        init_bn(self.pre_bn0)
+
+    def forward(self, x):
+        bs, ch, sig_len = x.shape
+        x0 = F.relu_(self.pre_bn0(self.pre_conv0(x)))
+        x0 = self.pre_block1(x0, pool_size=4)
+        x0 = self.pre_block2(x0, pool_size=4)
+        x0 = self.pre_block3(x0, pool_size=4)
+        x0 = x0[:, None, :]
+        x0 = nn.functional.interpolate(x0, (self.h, self.w))
+
+        x = torch.cat([self.spec(cqt, x) for cqt in self.cqts], dim=1)
+        x = x.view(bs, 3*len(self.cqts), self.h, self.w)
+        x = torch.cat((x, x0), dim=1)
+        output = self.model(x)
+        return output
+
+    def spec(self, cqt, x):
+        bs, ch, sig_len = x.shape
+        x = x.view(-1, sig_len).unsqueeze(1)
+        x = cqt(x).unsqueeze(1)
+        x = nn.functional.interpolate(x, (self.h, self.w))
+        return x
