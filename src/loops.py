@@ -10,7 +10,8 @@ def get_dataset_statistics(train_loader, val_loader, model):
     with torch.no_grad():
         for x, _ in tqdm(train_loader, ncols=100):
             x = x.cuda().float()
-            spec = model.spec(x)
+            # spec = model.spec(x)
+            spec = model.get_full_spec(x)
             means.append(torch.mean(spec, dim=(2, 3)).cpu().data.numpy())
             stds.append(torch.std(spec, dim=(2, 3)).cpu().data.numpy())
             maxes.append(torch.amax(spec, dim=(2, 3)).cpu().data.numpy())
@@ -18,7 +19,8 @@ def get_dataset_statistics(train_loader, val_loader, model):
 
         for x, _ in tqdm(val_loader, ncols=100):
             x = x.cuda().float()
-            spec = model.spec(x)
+            # spec = model.spec(x)
+            spec = model.get_full_spec(x)
             means.append(torch.mean(spec, dim=(2, 3)).cpu().data.numpy())
             stds.append(torch.std(spec, dim=(2, 3)).cpu().data.numpy())
             maxes.append(torch.amax(spec, dim=(2, 3)).cpu().data.numpy())

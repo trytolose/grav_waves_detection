@@ -9,8 +9,8 @@ MODEL:
   NAME: "CustomModel_v2_Scaler"
   CFG:
     encoder: "efficientnet_b4"
-    img_w: 256
-    img_h: 512
+    img_w: 512
+    img_h: 256
     cqt_params: 
           - sr: 2048
             fmin: 20 

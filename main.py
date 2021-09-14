@@ -19,7 +19,7 @@ from src.dataset import get_loaders
 from src.loops import get_dataset_statistics
 from src.models import get_model
 from src.utils.checkpoint import ModelCheckpoint
-from src.utils.utils import get_gradient_norm, get_lr
+from src.utils.utils import get_gradient_norm, get_lr, mixup, mixup_criterion
 
 warnings.filterwarnings("ignore")
 torch.multiprocessing.set_sharing_strategy("file_system")
@@ -33,7 +33,7 @@ def train(cfg):
         Path(tensorboard_logs).mkdir(parents=True, exist_ok=True)
         tensorboard_writer = SummaryWriter(tensorboard_logs, flush_secs=30)
         checkpoints = ModelCheckpoint(dirname=checkpoints_path, n_saved=cfg.N_SAVED)
-
+    print("!!!!!!", cfg.TRANSFORM.NAME)
     train_loader, val_loader = get_loaders(cfg)
 
     # train_loader, val_loader = get_in_memory_loaders(cfg)
@@ -56,6 +56,10 @@ def train(cfg):
     best_score = 0
     iters = len(train_loader)
 
+    # stats = get_dataset_statistics(train_loader, val_loader, model)
+    # for k, v in stats.items():
+    #     print(f"{k}: {v}")
+
     if cfg.MODEL.USE_SCALER is True and "CustomModel" in cfg.MODEL.NAME:
         print("calc_statistics")
         stats = get_dataset_statistics(train_loader, val_loader, model)
@@ -72,7 +76,7 @@ def train(cfg):
         model.train()
 
         for i, (x, y) in tqdm(enumerate(train_loader), total=iters, ncols=70, leave=False):
-            model.first_ep = (e == 0)
+            model.first_ep = e == 0
             optimizer.zero_grad()
             x = x.cuda().float()
             y = y.cuda().float().unsqueeze(1)
@@ -86,8 +90,14 @@ def train(cfg):
                 scaler.step(optimizer)
                 scaler.update()
             else:
-                pred = model(x)
-                loss = loss_fn(pred, y)
+                if cfg.MIXUP is True and np.random.rand() < 0.5:
+                    spec = model.get_full_spec(x)
+                    spec, y = mixup(spec, y, 1.0)
+                    pred = model(spec, True)
+                    loss = mixup_criterion(pred, y)
+                else:
+                    pred = model(x)
+                    loss = loss_fn(pred, y)
                 loss.backward()
                 if e >= cfg.GRAD_CLIP.START_EPOCH:
                     clip_grad_norm_(model.parameters(), max_norm=cfg.GRAD_CLIP.THR)

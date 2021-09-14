@@ -1,4 +1,4 @@
-EXP_NAME: "06_512x512_b4_f16_scaler"
+EXP_NAME: "07_512x512_seresnext50_f16_scaler"
 FOLD: 0
 BS: 32
 FP16: True
@@ -8,7 +8,7 @@ TRAIN_FOLD: -1
 MODEL:
   NAME: "CustomModel_v2_Scaler"
   CFG:
-    encoder: "efficientnet_b4"
+    encoder: "seresnext50_32x4d"
     img_w: 512
     img_h: 512
     cqt_params: 

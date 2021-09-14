@@ -1,5 +1,5 @@
 EXP_NAME: "00_b0_128_5cqt"
-FOLD: 1
+FOLD: 0
 BS: 64
 FP16: False
 EPOCH:  7

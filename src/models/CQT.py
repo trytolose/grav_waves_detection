@@ -3,6 +3,8 @@ import timm
 import torch
 import torch.nn as nn
 from nnAudio.Spectrogram import CQT1992v2
+from torch.cuda.amp import autocast
+
 
 class CustomModel_v1(nn.Module):
     def __init__(
@@ -77,14 +79,19 @@ class CustomModel_v2(nn.Module):
         self.cqts = nn.ModuleList()
         for param in cqt_params:
             self.cqts.append(CQT1992v2(**param))
-        self.model = timm.create_model(encoder, pretrained=pretrained, in_chans=3*len(cqt_params), num_classes=1)
+        self.model = timm.create_model(encoder, pretrained=pretrained, in_chans=3 * len(cqt_params), num_classes=1)
         self.h, self.w = img_h, img_w
         self.scaler = None
 
-    def forward(self, x):
-        x = torch.cat([self.spec(cqt, x) for cqt in self.cqts], dim=1)
-        output = self.model(x)
-        return output
+    def forward(self, x, spec_input=False):
+        if spec_input is False:
+            with autocast(enabled=False):
+                x = torch.cat([self.spec(cqt, x) for cqt in self.cqts], dim=1)
+            output = self.model(x)
+            return output
+        else:
+            output = self.model(x)
+            return output
 
     def spec(self, cqt, x):
         bs, ch, sig_len = x.shape
@@ -94,6 +101,9 @@ class CustomModel_v2(nn.Module):
         _, _, h, w = x.shape
         x = x.view(bs, 3, h, w)
         return x
+
+    def get_full_spec(self, x):
+        return torch.cat([self.spec(cqt, x) for cqt in self.cqts], dim=1)
 
 
 class CustomModel_v2_Scaler(nn.Module):
@@ -109,15 +119,15 @@ class CustomModel_v2_Scaler(nn.Module):
         self.cqts = nn.ModuleList()
         for param in cqt_params:
             self.cqts.append(CQT1992v2(**param))
-        self.ch_num = 3*len(cqt_params)
+        self.ch_num = 3 * len(cqt_params)
         self.model = timm.create_model(encoder, pretrained=pretrained, in_chans=self.ch_num, num_classes=1)
         self.h, self.w = img_h, img_w
         self.min = None
         self.max = None
         self.mean = None
-        
+
         self.first_ep = False
-    
+
     def update_stat(self, x):
         spec_maxes = x.amax(dim=(0, 2, 3))
         spec_mines = x.amin(dim=(0, 2, 3))
@@ -134,18 +144,18 @@ class CustomModel_v2_Scaler(nn.Module):
         else:
             self.max = spec_maxes
             self.min = spec_mines
-    
+
     # def update_mean_std(self, x):
     #     if self.mean is not None:
     #          self.mean = self.mean + x.mean(dim=(0, 2, 3))
-            
 
     def forward(self, x):
-        x = torch.cat([self.spec(cqt, x) for cqt in self.cqts], dim=1)
-        if self.first_ep:
-            self.update_stat(x)
-        #scaling at [0, 1]
-        x = (x - self.min.reshape(1, self.ch_num, 1, 1)) / (self.max - self.min).reshape(1, self.ch_num, 1, 1)
+        with autocast(enabled=False):
+            x = torch.cat([self.spec(cqt, x) for cqt in self.cqts], dim=1)
+            if self.first_ep:
+                self.update_stat(x)
+            # scaling at [0, 1]
+            x = (x - self.min.reshape(1, self.ch_num, 1, 1)) / (self.max - self.min).reshape(1, self.ch_num, 1, 1)
 
         output = self.model(x)
         return output
@@ -158,3 +168,6 @@ class CustomModel_v2_Scaler(nn.Module):
         _, _, h, w = x.shape
         x = x.view(bs, 3, h, w)
         return x
+
+    def get_full_spec(self, x):
+        return torch.cat([self.spec(cqt, x) for cqt in self.cqts], dim=1)
