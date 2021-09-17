@@ -1,8 +1,8 @@
-EXP_NAME: "00_b0_128_5cqt"
+EXP_NAME: "12_b0_128_5cqt_easy_hard"
 FOLD: 0
 BS: 64
 FP16: False
-EPOCH:  7
+EPOCH:  15
 TRAIN_FOLD: -1
 
 GRAD_CLIP: 
@@ -26,11 +26,12 @@ SCALER:
 
 MODEL:
   NAME: "CustomModel_v2"
-  USE_SCALER: False
+  USE_SCALER: True
   CFG:
     encoder: "efficientnet_b0"
     img_w: 128
     img_h: 128
+    num_classes: 3
     cqt_params: 
           - sr: 2048
             fmin: 20 
@@ -71,8 +72,13 @@ TRANSFORM:
 SCHEDULER:
   NAME: "torch.optim.lr_scheduler.CosineAnnealingLR"
   CFG:
-    T_max: 10
+    T_max: 15
 
 N_SAVED: 4
 
 TENSORBOARD_DIR: "/home/trytolose/rinat/kaggle/grav_waves_detection/logs/tensorboard_grid"
+
+LOSS:
+  NAME: "torch.nn.CrossEntropyLoss" 
+  # NAME: "torch.nn.MSELoss"
+  CFG: {}

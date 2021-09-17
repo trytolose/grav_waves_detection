@@ -39,7 +39,10 @@ MODEL:
 SCALER:
   NAME: "src.transforms.Scaler"
   MODE: "standart"
-  CHANNELS: 1
+  MIN: []
+  MAX: []
+  MEAN: []
+  STD: []
 
 OPTIMIZER:
   NAME: "torch.optim.Adam"

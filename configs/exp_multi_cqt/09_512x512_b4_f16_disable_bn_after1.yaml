@@ -1,13 +1,9 @@
-EXP_NAME: "00_b0_128_5cqt"
+EXP_NAME: "09_512x512_b4_f16_disable_bn_after1.yaml"
 FOLD: 0
-BS: 64
-FP16: False
+BS: 32
+FP16: True
 EPOCH:  7
 TRAIN_FOLD: -1
-
-GRAD_CLIP: 
-  START_EPOCH: 3
-  THR: 0.5
 
 SCALER:
   NAME: "src.transforms.Scaler"
@@ -24,13 +20,14 @@ SCALER:
   0.00368171, 0.00406665, 0.00508137]
 
 
+
 MODEL:
   NAME: "CustomModel_v2"
-  USE_SCALER: False
+  USE_SCALER: True
   CFG:
-    encoder: "efficientnet_b0"
-    img_w: 128
-    img_h: 128
+    encoder: "efficientnet_b4"
+    img_w: 512
+    img_h: 512
     cqt_params: 
           - sr: 2048
             fmin: 20 
@@ -71,8 +68,8 @@ TRANSFORM:
 SCHEDULER:
   NAME: "torch.optim.lr_scheduler.CosineAnnealingLR"
   CFG:
-    T_max: 10
+    T_max: 9
 
-N_SAVED: 4
+N_SAVED: 5
 
 TENSORBOARD_DIR: "/home/trytolose/rinat/kaggle/grav_waves_detection/logs/tensorboard_grid"

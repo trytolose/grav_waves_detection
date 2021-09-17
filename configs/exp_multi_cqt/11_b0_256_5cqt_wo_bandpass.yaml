@@ -1,36 +1,17 @@
-EXP_NAME: "00_b0_128_5cqt"
+EXP_NAME: "11_b0_256_5cqt_wo_bandpass"
 FOLD: 0
-BS: 64
+BS: 32
 FP16: False
 EPOCH:  7
 TRAIN_FOLD: -1
 
-GRAD_CLIP: 
-  START_EPOCH: 3
-  THR: 0.5
-
-SCALER:
-  NAME: "src.transforms.Scaler"
-  MODE: "standart"
-  MIN: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-  MAX: [1.0152528, 1.0579135,  4.407389,   0.6678433,  0.6959216,  2.6014798,
- 0.96952397, 0.99088365, 4.4576807,  0.67043734, 0.6968712,  2.6080358,
- 1.0269003,  1.0014149,  4.6485667 ]
-  MEAN: [0.00351872, 0.00363726, 0.00508522, 0.00528083, 0.00545865, 0.00854149,
-  0.00369634, 0.00389562, 0.00503457, 0.00536721, 0.00556214, 0.00868938,
-  0.00358258, 0.00395705, 0.00496533]
-  STD: [0.00381318, 0.00394177, 0.00548183, 0.00575372, 0.00594777, 0.00925386,
-  0.00388547, 0.00409492, 0.00528736, 0.00575383, 0.00596282, 0.00925949,
-  0.00368171, 0.00406665, 0.00508137]
-
-
 MODEL:
   NAME: "CustomModel_v2"
-  USE_SCALER: False
+  USE_SCALER: True
   CFG:
     encoder: "efficientnet_b0"
-    img_w: 128
-    img_h: 128
+    img_w: 256
+    img_h: 256
     cqt_params: 
           - sr: 2048
             fmin: 20 
@@ -63,16 +44,16 @@ MODEL:
             bins_per_octave: 4
 
 TRANSFORM: 
-  NAME: "src.transforms.minmax_turkey_bandpass_transform"
-  CFG:
-    lf: 30
-    hf: 400
+  NAME: "src.transforms.minmax_transform"
+  # CFG:
+  #   lf: 20
+  #   hf: 500
 
 SCHEDULER:
   NAME: "torch.optim.lr_scheduler.CosineAnnealingLR"
   CFG:
-    T_max: 10
+    T_max: 9
 
-N_SAVED: 4
+N_SAVED: 5
 
 TENSORBOARD_DIR: "/home/trytolose/rinat/kaggle/grav_waves_detection/logs/tensorboard_grid"

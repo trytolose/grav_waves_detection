@@ -32,10 +32,19 @@ class TrainDataset(Dataset):
         if self.mode == "test":
             return waves
 
+
 def get_loaders(cfg):
     INPUT_PATH = Path(cfg.INPUT_PATH)
-    df = pd.read_csv(INPUT_PATH / "training_labels.csv")
-    # df = pd.read_csv(INPUT_PATH / "train_oof_overfit.csv")
+    # df = pd.read_csv(INPUT_PATH / "training_labels.csv")
+    df = pd.read_csv(INPUT_PATH / "oof_00_b0_512_5cqt.csv")
+    df = df.sort_values("id").reset_index(drop=True)
+
+    df["hard"] = 0
+    df.loc[(df["pred"] <= 0.4) & (df["target"] == 1), "hard"] = 1
+    df.loc[df["hard"] == 1, "target"] = 2  #!!!!
+    # df["target"] = df["target"] * 2
+    # df.loc[df["hard"] == 1, "target"] = 1
+
     files = list((INPUT_PATH / "train").rglob("*.npy"))
     FILE_PATH_DICT = {x.stem: str(x) for x in files}
     df["path"] = df["id"].apply(lambda x: FILE_PATH_DICT[x])
@@ -51,7 +60,7 @@ def get_loaders(cfg):
         df_train = df[df["fold"] != cfg.FOLD].reset_index(drop=True)
     else:
         df_train = df[df["fold"] == cfg.TRAIN_FOLD].reset_index(drop=True)
-    print(df_train.head())
+    # print(df_train.head())
     df_val = df[df["fold"] == cfg.FOLD].reset_index(drop=True)
 
     train_ds = TrainDataset(
@@ -77,14 +86,16 @@ def get_loaders(cfg):
     return train_loader, val_loader
 
 
-def get_test_loader(cfg):
+def get_test_loader(cfg, debug=False):
     INPUT_PATH = Path(cfg.INPUT_PATH)
 
     df = pd.read_csv(INPUT_PATH / "sample_submission.csv")
-
     files = list((INPUT_PATH / "test").rglob("*.npy"))
     FILE_PATH_DICT = {x.stem: str(x) for x in files}
     df["path"] = df["id"].apply(lambda x: FILE_PATH_DICT[x])
+
+    if debug:
+        df = df[:100]
 
     transform_f = partial(locate(cfg.TRANSFORM.NAME), **cfg.TRANSFORM.CFG)
 

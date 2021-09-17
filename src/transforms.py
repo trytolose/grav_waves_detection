@@ -86,39 +86,24 @@ class Scaler:
     def __init__(
         self,
         mode: str = "none",
-        channels: int = 1,
         min_val=-1,
         max_val=1,
     ) -> None:
         self.mode = mode
-        self.channels = channels
         self.min_val = min_val
         self.max_val = max_val
 
     def set_stats(self, stats):
-        if self.mode == "minmax":
-            self.min_val = torch.tensor(self.min_val).cuda()
-            self.max_val = torch.tensor(self.max_val).cuda()
 
-            if self.channels == 1:
-                self.ds_min = torch.tensor([stats["min"]]).cuda()
-                self.ds_max = torch.tensor([stats["max"]]).cuda()
-            elif self.channels == 3:
-                self.ds_min = torch.tensor(stats["min_3"]).cuda().reshape(1, 3, 1, 1)
-                self.ds_max = torch.tensor(stats["max_3"]).cuda().reshape(1, 3, 1, 1)
-            self.scaler_fn = self.minmax_scaler
-        elif self.mode == "standart":
-            if self.channels == 1:
-                self.ds_mean = torch.tensor([stats["mean"]]).cuda()
-                self.ds_std = torch.tensor([stats["std"]]).cuda()
-            elif self.channels == 3:
-                self.ds_mean = torch.tensor(stats["mean_3"]).cuda().reshape(1, 3, 1, 1)
-                self.ds_std = torch.tensor(stats["std_3"]).cuda().reshape(1, 3, 1, 1)
+        self.min_val = torch.tensor(self.min_val).cuda()
+        self.max_val = torch.tensor(self.max_val).cuda()
 
-            self.scaler_fn = self.standart_scaler
+        self.ds_min = torch.tensor(stats["min"]).cuda().reshape(1, -1, 1, 1)
+        self.ds_max = torch.tensor(stats["max"]).cuda().reshape(1, -1, 1, 1)
+        self.ds_mean = torch.tensor(stats["mean"]).cuda().reshape(1, -1, 1, 1)
+        self.ds_std = torch.tensor(stats["std"]).cuda().reshape(1, -1, 1, 1)
 
-        else:
-            self.scaler_fn = self.get_wave
+        self.scaler_fn = self.max_scaler
 
     def get_wave(self, x: torch.Tensor) -> torch.Tensor:
         return x
@@ -132,7 +117,9 @@ class Scaler:
         return (x - self.ds_mean) / self.ds_std
 
     def max_scaler(self, x):
-        x /= self.ds_max
+        x = (x - self.ds_min) / (self.ds_max - self.ds_min)
+        x = (x - self.ds_mean) / self.ds_std
+        return x
 
     def __call__(self, X: torch.Tensor) -> torch.Tensor:
         return self.scaler_fn(X)

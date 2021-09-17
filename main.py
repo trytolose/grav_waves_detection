@@ -20,6 +20,8 @@ from src.loops import get_dataset_statistics
 from src.models import get_model
 from src.utils.checkpoint import ModelCheckpoint
 from src.utils.utils import get_gradient_norm, get_lr, mixup, mixup_criterion
+import torch.nn as nn
+from torch.nn import BatchNorm2d
 
 warnings.filterwarnings("ignore")
 torch.multiprocessing.set_sharing_strategy("file_system")
@@ -62,8 +64,16 @@ def train(cfg):
 
     if cfg.MODEL.USE_SCALER is True and "CustomModel" in cfg.MODEL.NAME:
         print("calc_statistics")
-        stats = get_dataset_statistics(train_loader, val_loader, model)
-        spec_scaler = locate(cfg.SCALER.NAME)(cfg.SCALER.MODE, cfg.SCALER.CHANNELS)
+        if len(cfg.SCALER.MIN) == 0:
+            stats = get_dataset_statistics(train_loader, val_loader, model)
+        else:
+            stats = {}
+            stats["min"] = cfg.SCALER.MIN
+            stats["max"] = cfg.SCALER.MAX
+            stats["mean"] = cfg.SCALER.MEAN
+            stats["std"] = cfg.SCALER.STD
+
+        spec_scaler = locate(cfg.SCALER.NAME)(cfg.SCALER.MODE)
         spec_scaler.set_stats(stats)
         model.set_scaler(spec_scaler)
         for k, v in stats.items():
@@ -79,7 +89,8 @@ def train(cfg):
             model.first_ep = e == 0
             optimizer.zero_grad()
             x = x.cuda().float()
-            y = y.cuda().float().unsqueeze(1)
+            y = y.cuda().long()
+            # y = y.cuda().float().unsqueeze(1)
             if cfg.FP16 is True:
                 with autocast():
                     pred = model(x)
@@ -119,12 +130,14 @@ def train(cfg):
         with torch.no_grad():
             for i, (x, y) in tqdm(enumerate(val_loader), ncols=50, leave=False, total=len(val_loader)):
                 x = x.cuda().float()
-                y = y.cuda().float().unsqueeze(1)
+                y = y.cuda().long()
+                # y = y.cuda().float().unsqueeze(1)
                 pred = model(x)
                 loss = loss_fn(pred, y)
                 val_loss.append(loss.item())
-
-                pred = pred.sigmoid().cpu().data.numpy()
+                # pred = pred.cpu().data.numpy()
+                pred = pred.softmax(dim=1).cpu().data.numpy()
+                # pred = pred.sigmoid().cpu().data.numpy()
                 val_pred.append(pred)
                 val_true.append(y.cpu().numpy())
 
@@ -133,9 +146,20 @@ def train(cfg):
         val_true = np.concatenate(val_true).reshape(
             -1,
         )
-        val_pred = np.concatenate(val_pred).reshape(
-            -1,
-        )
+        val_pred = np.concatenate(val_pred)
+        # val_pred = np.concatenate(val_pred).reshape(
+        #     -1,
+        # )
+        val_pred = val_pred[:, 1:].sum(axis=1)
+        val_true = (val_true > 0).astype(int)
+        # print(val_pred.shape)
+        # print(val_pred)
+        df_pred = val_loader.dataset.df.copy()
+        mask_hard = (df_pred["hard"] == 1) | (df_pred["target"] == 0)
+        mask_easy = df_pred["hard"] == 0
+
+        easy_score = metrics.roc_auc_score(val_true[mask_easy], val_pred[mask_easy])
+        hard_score = metrics.roc_auc_score(val_true[mask_hard], val_pred[mask_hard])
 
         final_score = metrics.roc_auc_score(val_true, val_pred)
         # grad_norm = get_gradient_norm(model)
@@ -143,6 +167,7 @@ def train(cfg):
             f"Epoch: {e:03d}; lr: {get_lr(optimizer):.10f}; train_loss: {train_loss:.05f} val_loss: {val_loss:.05f}; roc: {final_score:.5f}",
             end=" ",
         )
+        print(f"roc_easy: {easy_score:.05f}; roc_hard: {hard_score:.05f}", end=" ")
         if cfg.DEBUG is False:
             tensorboard_writer.add_scalar("Learning rate", get_lr(optimizer), e)
             # tensorboard_writer.add_scalar("Grad_norm", grad_norm, e)
@@ -155,6 +180,10 @@ def train(cfg):
             print("+")
         else:
             print()
+
+        # for child_name, child in model.model.named_modules():
+        #     if isinstance(child, (nn.BatchNorm2d, BatchNorm2d)):
+        #         child.track_running_stats = False
 
 
 @hydra.main(config_path="./configs", config_name="default")

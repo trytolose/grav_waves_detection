@@ -74,19 +74,27 @@ class CustomModel_v2(nn.Module):
         pretrained=True,
         img_h=256,
         img_w=256,
+        num_classes=1,
     ):
         super().__init__()
         self.cqts = nn.ModuleList()
         for param in cqt_params:
             self.cqts.append(CQT1992v2(**param))
-        self.model = timm.create_model(encoder, pretrained=pretrained, in_chans=3 * len(cqt_params), num_classes=1)
+        self.model = timm.create_model(
+            encoder, pretrained=pretrained, in_chans=3 * len(cqt_params), num_classes=num_classes
+        )
         self.h, self.w = img_h, img_w
         self.scaler = None
+
+    def set_scaler(self, scaler):
+        self.scaler = scaler
 
     def forward(self, x, spec_input=False):
         if spec_input is False:
             with autocast(enabled=False):
                 x = torch.cat([self.spec(cqt, x) for cqt in self.cqts], dim=1)
+                if self.scaler is not None:
+                    x = self.scaler(x)
             output = self.model(x)
             return output
         else:

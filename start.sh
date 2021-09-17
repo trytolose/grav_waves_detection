@@ -181,4 +181,33 @@
 # python main.py +exp_multi_cqt=07_512x512_seresnext50_f16_scaler
 
 # python main.py +exp_multi_cqt=00_b0_128_5cqt DEBUG=True TRAIN_FOLD=1
-python main.py +exp_multi_cqt=00_b0_128_5cqt DEBUG=True TRAIN_FOLD=1 MIXUP=True
+# python main.py +exp_multi_cqt=00_b0_128_5cqt DEBUG=True TRAIN_FOLD=1 MIXUP=True
+# python main.py +wavenets=001 DEBUG=True BS=64
+
+# python main.py +exp_multi_cqt=00_b0_128_5cqt DEBUG=True TRAIN_FOLD=1
+
+# python main.py +exp_multi_cqt=08_512x512_seresnext50_f32
+# python main.py +exp_multi_cqt=09_512x512_b4_f16_disable_bn_after1
+# python main.py +exp_multi_cqt=09_512x512_b4_f16_disable_bn_after1 EXP_NAME=09_512x512_b4_f16_disable_bn_after0
+
+# python main.py +exp_multi_cqt=00_b0_128_5cqt DEBUG=True TRAIN_FOLD=1
+# python main.py +exp_multi_cqt=10_cwt DEBUG=True TRAIN_FOLD=1
+# python main.py +exp_multi_cqt=09_512x512_resnet18d FOLD=0
+# python main.py +exp_multi_cqt=09_512x512_resnet18d FOLD=1
+# python main.py +exp_multi_cqt=09_512x512_resnet18d FOLD=2
+# python main.py +exp_multi_cqt=09_512x512_resnet18d FOLD=3
+# python main.py +exp_multi_cqt=09_512x512_resnet18d FOLD=4
+
+# python create_submission.py +exp_multi_cqt=09_512x512_resnet18d FOLD=0
+# python create_submission.py +exp_multi_cqt=09_512x512_resnet18d FOLD=1
+# python create_submission.py +exp_multi_cqt=09_512x512_resnet18d FOLD=2
+# python create_submission.py +exp_multi_cqt=09_512x512_resnet18d FOLD=3
+# python create_submission.py +exp_multi_cqt=09_512x512_resnet18d FOLD=4
+
+
+# python main.py +exp_multi_cqt=10_b0_512_5cqt_wo_minmax
+
+# python main.py +exp_multi_cqt=11_b0_256_5cqt_wo_bandpass
+python main.py +exp_multi_cqt=12_b0_128_5cqt_easy_hard
+
+# python create_submission.py +exp_multi_cqt=12_b0_128_5cqt_easy_hard FOLD=0 BS=256

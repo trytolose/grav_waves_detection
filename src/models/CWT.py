@@ -33,13 +33,13 @@ class CustomModel_CWT(nn.Module):
         self.scaler = scaler
 
     def forward(self, x):
-        x = self.spec(x)
+        x = self.get_full_spec(x)
         if self.scaler is not None:
             x = self.scaler(x)
         output = self.model(x)
         return output
 
-    def spec(self, x):
+    def get_full_spec(self, x):
         bs, ch, sig_len = x.shape
         x = x.view(-1, sig_len)
         x = self.cwt(x).unsqueeze(1)
