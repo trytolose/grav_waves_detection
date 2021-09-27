@@ -79,10 +79,7 @@ def get_filter_coefs(fs=2048, ch=0):
     #      120.00, 179.99, 304.99, 331.49, 510.02, 1009.99])
 
     # [13.5, 14.0, 38, 60.00, 306.5, 495]_
-    if ch == 2:
-        notchesAbsolute = np.array([438])
-    else:
-        notchesAbsolute = np.array([13.5, 14.0, 38, 60.00, 306.5, 495])
+    notchesAbsolute = np.array([13.5, 14.0, 38, 60.00, 306.5, 438, 495])
 
     # notch filter coefficients:
     for notchf in notchesAbsolute:
@@ -100,16 +97,18 @@ def get_filter_coefs(fs=2048, ch=0):
     '''
     return coefs
 
-coefs_list = [get_filter_coefs(fs=2048, ch=ch) for ch in range(3)]
+coefs_list = get_filter_coefs(fs=2048)
 def filter_data(data_in):
     data = data_in.copy()
-    for ch in range(3):
-        coefs = coefs_list[ch]
-        for coef in coefs:
-            b, a = coef
-            # filtfilt applies a linear filter twice, once forward and once backwards.
-            # The combined filter has linear phase.
-            data[ch] = filtfilt(b, a, data[ch])
+    coefs = coefs_list
+    for i, coef in enumerate(coefs):
+        b, a = coef
+        # filtfilt applies a linear filter twice, once forward and once backwards.
+        # The combined filter has linear phase.
+        if i == len(coefs)-2:
+            data[2, :] = filtfilt(b, a, data[2, :])
+        else:
+            data[[0, 1], :] = filtfilt(b, a, data[[0, 1], :])
     return data
 
 def apply_bandpass(x, lf=30, hf=400, order=8, sr=2048):
@@ -172,10 +171,17 @@ def turkey_bandpass_transform(waves, lf=30, hf=400):
 
 def minmax_turkey_bandpass_transform(waves, lf=30, hf=400):
     waves = min_max_scale(waves)
-    waves = filter_data(waves)
     waves = apply_win(waves)
     waves = apply_bandpass(waves)
-    waves = denoise_tv_chambolle(waves)
+    return waves
+
+def minmax_turkey_bandpass_shift_filt_transform(waves, lf=30, hf=400):
+    waves[1, :] = -np.roll(waves[1, :], int(0.001 * 2048))
+    waves[2, :] = -np.roll(waves[2, :], int(0.016 * 2048))
+    waves = min_max_scale(waves)
+    waves = apply_win(waves)
+    waves = filter_data(waves)
+    waves = apply_bandpass(waves)
     return waves
 
 
